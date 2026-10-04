@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>1-3 模擬、應用與台灣</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C11 11 7 16 7 21a9 9 0 0 0 18 0c0-5-4-10-9-18z' fill='%230f6c9b'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/deck.css">
+  <link rel="stylesheet" href="../u1-2/unit.css">
+  <link rel="stylesheet" href="./unit.css">
+  <script type="importmap">
+    { "imports": { "three": "../../vendor/three/build/three.module.js", "three/addons/": "../../vendor/three/jsm/" } }
+  </script>
+</head>
+<body>
+<div class="deck" data-layout="title" data-video="../../media/ch01/u1-3/hls/index.m3u8" data-poster="../../media/ch01/u1-3/poster.jpg">
+  <div class="deck__bg" id="bgTw">
+    <div class="deck__loading" id="loadTw"><b>正在載入台灣地形</b><span id="loadTwStage">準備中…</span><i></i></div>
+  </div>
+  <div class="deck__bg is-off" id="bgRv">
+    <div class="deck__loading" id="loadRv"><b>正在生成 3D 水庫</b><span id="loadRvStage">準備中…</span><i></i></div>
+  </div>
+
+  <div class="deck__stage">
+
+    <!-- 01 封面 -->
+    <section class="slide" data-layout="title" data-scene="tw" data-tw='{"step":"tw-hero","mode":"relief"}' data-labels="off" data-title="封面">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>第 1 章 導論</span><span>›</span><span>單元 1-3</span></nav>
+      <div class="title-block rise">
+        <p class="kicker">Chapter 1 · Unit 1-3</p>
+        <h1>模擬、應用與台灣</h1>
+        <p class="lede">怎麼用模式描述水？台灣的山和河有什麼不一樣？</p>
+        <p class="src" style="margin-top:18px">課本 p.8–10</p>
+      </div>
+    </section>
+
+    <!-- 02 學習目標 -->
+    <section class="slide" data-layout="paper" data-title="學習目標">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span></nav>
+      <div class="body cols cols-73">
+        <div>
+          <p class="kicker rise">本單元目標</p>
+          <h2 class="rise" style="--d:.08s">學完這個單元，你會…</h2>
+          <ol class="goal-list">
+            <li class="rise" style="--d:.2s">分辨定率與機率模式、集塊與分佈模式，知道各自的長處和代價</li>
+            <li class="rise" style="--d:.3s">說出台灣地形、降雨與河川的特性，以及它們帶來的水資源問題</li>
+            <li class="rise" style="--d:.4s">用流量累積曲線，判斷要多大的水庫才能穩定供水</li>
+          </ol>
+        </div>
+        <div class="rise" style="--d:.45s; align-self:center">
+          <p class="kicker">這一課用到真實資料</p>
+          <p class="big-def" style="margin-top:14px; font-size:32px">台灣 3D 地形來自 SRTM 衛星高程資料，約 280 m 一格。課本的數字，我們會<b>自己算一次</b>對照。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 物理模型 vs 數學模式 -->
+    <section class="slide" data-layout="paper" data-title="1.3 水文模擬方法">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span><span class="src">課本 p.8</span></nav>
+      <div class="body">
+        <p class="kicker rise">1.3 水文模擬方法</p>
+        <h2 class="rise" style="--d:.06s">兩種模擬：縮小的模型，或是數學</h2>
+        <div class="mtree">
+          <div class="mtree__top rise" style="--d:.15s">
+            <div class="mnode mnode--dim"><b>物理模型</b><small>physical model</small><span>做一個縮小的實體模型。但縮小後的尺度跟真實相差太大，用得不多</span></div>
+            <div class="mnode mnode--main"><b>數學模式</b><small>mathematical model</small><span>用方程式描述水的運動，是水文分析的主力</span></div>
+          </div>
+          <div class="mtree__mid f" data-fi="1">
+            <div class="mnode"><b>定率模式</b><small>deterministic</small><span>從物理定律出發：連續方程式＋動量方程式（偏微分方程式）。同樣的輸入，永遠得到同樣的輸出</span></div>
+            <div class="mnode"><b>機率模式</b><small>probabilistic</small><span>水文量的發生由或然率主控，關心「發生的機會有多大」</span></div>
+          </div>
+          <div class="mtree__low">
+            <div class="mnode mnode--leaf f" data-fi="2"><b>概念化模式</b><small>conceptual</small><span>把偏微分方程式簡化成常微分或代數方程式</span></div>
+            <div class="mnode mnode--leaf f" data-fi="2"><b>參數型模式</b><small>parametric</small><span>用試驗或紀錄資料求出參數，代入簡化方程式</span></div>
+            <div class="mnode mnode--leaf f" data-fi="3"><b>統計模式</b><small>statistical</small><span>某一特殊事件在觀測期間內發生的機率</span></div>
+            <div class="mnode mnode--leaf f" data-fi="3"><b>序率模式</b><small>stochastic</small><span>水文時間序列（time series）的隨機性質</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 集塊 vs 分佈（3D 台灣） -->
+    <section class="slide" data-layout="scene" data-scene="tw" data-tw='{"step":"tw-model","mode":"relief"}' data-title="集塊與分佈模式">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span><span class="src">課本 p.8–9</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">另一種分法：空間上怎麼看</p>
+        <h2>集塊 vs 分佈</h2>
+        <p class="f" data-tw='{"mode":"lumped"}'><b>集塊模式</b>（lumped）：把整個集水區當成均勻的一塊，全區只用一組參數。典型例子是<span class="em">單位歷線</span>，能描述逕流隨時間的變化，卻說不出空間上哪裡多、哪裡少。</p>
+        <p class="f" data-tw='{"mode":"grid"}'><b>分佈模式</b>（distributed）：把集水區切成許多格，每一格有自己的參數。例如<span class="em">動力波模式</span>，能描述水流在時間與空間上的變化。</p>
+        <p class="note f">代價：分佈模式需要大量具空間變異的參數和大量電腦計算，實務上仍有較大限制。</p>
+      </div>
+    </section>
+
+    <!-- 05 1.4 應用 -->
+    <section class="slide" data-layout="paper" data-title="1.4 水文學之應用">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span><span class="src">課本 p.9</span></nav>
+      <div class="body">
+        <p class="kicker rise">1.4 水文學之應用</p>
+        <h2 class="rise" style="--d:.06s">學這些，最後要拿來做什麼？</h2>
+        <p class="rise muted" style="--d:.1s; font-size:25px; margin-top:8px">水文方程式＋水文模擬方法 → 模擬水文歷程 → 解決水資源工程問題。四個代表性的例子：</p>
+        <div class="apps">
+          <div class="app f"><span class="app__in">降雨頻率分析</span><span class="app__arrow">→</span><span class="app__out">都市排水系統、山區水土保持工程設計</span><span class="app__ch">第 3、9 章</span></div>
+          <div class="app f"><span class="app__in">流量頻率分析</span><span class="app__arrow">→</span><span class="app__out">堤岸高度設計、水資源分配與管理</span><span class="app__ch">第 9 章</span></div>
+          <div class="app f"><span class="app__in">集水區降雨逕流模式</span><span class="app__arrow">→</span><span class="app__out">集水區整治工程、即時洪水預報</span><span class="app__ch">第 7 章</span></div>
+          <div class="app f"><span class="app__in">可能最大洪水理論</span><span class="app__arrow">→</span><span class="app__out">水壩排洪道設計</span><span class="app__ch">第 8–9 章</span></div>
+        </div>
+        <p class="rise muted" style="--d:.2s; font-size:21px; margin-top:22px">污染控制、生態保育、沖蝕防制等領域也會用到水文學，課本留給專門書籍。</p>
+      </div>
+    </section>
+
+    <!-- 06 台灣：位置與面積 -->
+    <section class="slide" data-layout="scene" data-scene="tw" data-tw='{"step":"tw-top","mode":"relief","tropic":true}' data-title="1.5 台灣的位置">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span><span class="src">課本 p.9</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">1.5 台灣地區之地文與水文概況</p>
+        <h2>南北狹長的島</h2>
+        <p>台灣位在西太平洋，日本與菲律賓之間，<span class="em">北迴歸線</span>橫貫南半部。總面積約 <b>三萬六千平方公里</b>。</p>
+        <p class="f">我們用這份衛星地形資料，把高程大於 0 的格子面積加起來：約 <b>36,600 km²</b>，和課本的數字相當接近。</p>
+        <p class="note">右邊是真實地形，高度放大了 3 倍，山脈的起伏才看得清楚。</p>
+      </div>
+    </section>
+
+    <!-- 07 地形分區 -->
+    <section class="slide" data-layout="scene" data-scene="tw" data-tw='{"step":"tw-bands","mode":"bands"}' data-title="地形分區">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span><span class="src">課本 p.9</span></nav>
+      <div class="card3d" data-inset="left" style="width:640px">
+        <p class="kicker">中央山脈橫亙中央</p>
+        <h2>山地、丘陵、平原</h2>
+        <table class="zones">
+          <thead><tr><th></th><th>高程</th><th>課本</th><th class="f" data-fi="1">我們算的</th></tr></thead>
+          <tbody>
+            <tr><td><i style="background:#6b5c4d"></i>山區</td><td>1000 m 以上</td><td>32%</td><td class="f" data-fi="1">32%</td></tr>
+            <tr><td><i style="background:#78a85c"></i>丘陵與台地</td><td>100–1000 m</td><td>31%</td><td class="f" data-fi="1">39%</td></tr>
+            <tr><td><i style="background:#ccb96b"></i>沖積平原</td><td>100 m 以下</td><td>37%</td><td class="f" data-fi="1">29%</td></tr>
+          </tbody>
+        </table>
+        <p class="f" data-fi="1" style="font-size:22px; margin-top:12px">山區比例吻合。丘陵和平原的分界在 100 m，對資料解析度和「台地」的認定很敏感，所以差了幾個百分點。</p>
+        <p class="note">平原是人口與農業集中的地方。</p>
+      </div>
+    </section>
+
+    <!-- 08 岩層與沖蝕 -->
+    <section class="slide" data-layout="scene" data-scene="tw" data-tw='{"step":"tw-mtn","mode":"relief"}' data-title="岩層脆弱、沖蝕嚴重">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span><span class="src">課本 p.9</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">山的材料</p>
+        <h2>岩層脆弱、沖蝕嚴重</h2>
+        <p>台灣山脈多屬<span class="em">沉積岩及變質岩</span>，岩層脆弱、容易斷裂，而且高度風化。</p>
+        <p class="f">再加上<b>降雨強度大、水流速度快</b>，造成嚴重沖蝕；地震頻繁，也影響山坡地的穩定。</p>
+        <p class="note f">所以台灣的河川在洪水時會夾帶大量泥砂，這一點等一下會再出現。</p>
+      </div>
+    </section>
+
+    <!-- 09 雨量 -->
+    <section class="slide" data-layout="paper" data-title="雨量豐沛但集中">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span><span class="src">課本 p.10</span></nav>
+      <div class="body cols">
+        <div>
+          <p class="kicker rise">雨</p>
+          <h2 class="rise" style="--d:.06s">雨很多，但都擠在一起下</h2>
+          <ul class="calc" style="font-size:27px">
+            <li class="rise" style="--d:.15s">年平均降雨量約 <b>2500 mm</b>，是世界平均的 <b>2.5 倍</b></li>
+            <li class="f" data-fi="1">降雨集中在 <b>5–10 月</b>，佔全年的 <b>四分之三</b>，大部分是颱風帶來的豪雨</li>
+            <li class="f" data-fi="2">1897–1997 年侵台颱風共 350 次，平均<b>每年 3.5 次</b>，還有上千次暴雨</li>
+            <li class="f" data-fi="3">1983–1995 年天然災害損失平均每年 128 億元，約是同期火災損失的 4.6 倍</li>
+          </ul>
+        </div>
+        <div class="pe-none rainviz">
+          <svg viewBox="0 0 700 760" aria-label="雨量比較">
+            <g class="rv-col">
+              <rect x="110" y="140" width="170" height="500" class="col-tw"/><text x="195" y="120" class="col-lab">台灣 2500 mm</text>
+              <rect x="390" y="440" width="170" height="200" class="col-w"/><text x="475" y="420" class="col-lab">世界平均 ≈ 1000 mm</text>
+              <line x1="70" y1="640" x2="630" y2="640" class="col-base"/>
+            </g>
+            <g class="f rv-ring" data-fi="1">
+              <rect x="0" y="0" width="700" height="760" class="ring-bg"/>
+              <circle cx="350" cy="380" r="210" class="ring-bg2"/>
+              <circle cx="350" cy="380" r="160" class="ring-rest"/>
+              <circle cx="350" cy="380" r="160" class="ring-wet" pathLength="100" stroke-dasharray="75 25" transform="rotate(-90 350 380) rotate(120 350 380)"/>
+              <text x="350" y="370" class="ring-big">3/4</text>
+              <text x="350" y="420" class="ring-sm">5–10 月</text>
+              <text x="350" y="660" class="ring-sm">全年雨量的分配</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 河川 -->
+    <section class="slide" data-layout="scene" data-scene="tw" data-tw='{"step":"tw-east","mode":"relief"}' data-title="河川短、坡陡、流急">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span><span class="src">課本 p.10</span></nav>
+      <div class="card3d" data-inset="left" style="width:660px">
+        <p class="kicker">河</p>
+        <h2>短、陡、急</h2>
+        <p style="font-size:25px">台灣共有河川 129 條，長度都很短、流域面積小、<span class="em">坡陡流急</span>，大部分河川洪水與枯水的流量差異非常明顯。</p>
+        <div class="f">
+          <p style="font-size:24px; margin-top:12px"><b>比流量</b>（specific discharge）：河川流量除以流域面積，單位 m³/s/km²。面積不同的河川，就能用它公平比較。</p>
+          <svg class="sq" viewBox="0 0 580 210" aria-label="比流量比較（對數尺度）">
+            <g class="sq__grid"><line x1="150" y1="20" x2="150" y2="180"/><line x1="290" y1="20" x2="290" y2="180"/><line x1="430" y1="20" x2="430" y2="180"/><line x1="570" y1="20" x2="570" y2="180"/></g>
+            <text x="150" y="200" class="sq__ax">0.01</text><text x="290" y="200" class="sq__ax">0.1</text><text x="430" y="200" class="sq__ax">1</text><text x="570" y="200" class="sq__ax">10</text>
+            <text x="140" y="52" class="sq__n">濁水溪</text><rect x="150" y="34" width="0" height="28" class="sq__b sq__b--tw" data-v="7.7"/>
+            <text x="140" y="102" class="sq__n">信濃川</text><rect x="150" y="84" width="0" height="28" class="sq__b" data-v="0.308"/>
+            <text x="140" y="152" class="sq__n">長江</text><rect x="150" y="134" width="0" height="28" class="sq__b" data-v="0.0171"/>
+          </svg>
+          <p class="muted" style="font-size:19px">濁水溪 7.7 m³/s/km²（課本），約為信濃川的 25 倍、長江的 450 倍；另外兩條是由倍數換算，對數尺度。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 結論：要把雨存起來 -->
+    <section class="slide" data-layout="paper" data-title="豐水期存、枯水期用">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span><span class="src">課本 p.10</span></nav>
+      <div class="body cols">
+        <div>
+          <p class="kicker rise">綜合起來</p>
+          <h2 class="rise" style="--d:.06s">又怕水多，又怕水少</h2>
+          <p class="rise" style="--d:.14s; margin-top:24px">岩層脆弱、坡陡流急，雨又集中在少數月份：雨季洪災頻仍，乾季卻常常不夠用。</p>
+          <p class="f big-def" data-fi="1" style="margin-top:30px; font-size:34px">所以要<b>整治河川控制洪水</b>，並且<b>把雨季的水存起來</b>，補乾季的不足。</p>
+          <p class="f" data-fi="2" style="margin-top:24px">那水庫要蓋多大才夠？課本第 1 章習題 7、8 用的工具，就是<span class="em">流量累積曲線</span>。</p>
+        </div>
+        <div class="pe-none">
+          <svg class="season" viewBox="0 0 700 600" aria-label="月流量示意">
+            <text x="350" y="40" class="season__t">習題 8 的河川月平均流量（m³/s）</text>
+            <g class="season__bars"></g>
+            <line x1="60" y1="520" x2="660" y2="520" class="season__base"/>
+            <g class="f" data-fi="2"><line x1="60" x2="660" class="season__d"/><text x="664" class="season__dl">需水 40</text></g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12 流量累積曲線的觀念 -->
+    <section class="slide" data-layout="paper" data-title="流量累積曲線">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span><span class="src">課本 p.13・習題 7、8（補充）</span></nav>
+      <div class="body cols">
+        <div>
+          <p class="kicker rise">補充：Mass curve（Rippl 法）</p>
+          <h2 class="rise" style="--d:.06s">把流量一路加起來</h2>
+          <ol class="calc" style="font-size:25px">
+            <li class="rise" style="--d:.12s"><b>流量累積曲線</b>：從某個時間開始，把河川流量逐月累加。曲線的<b>斜率就是當時的流量</b>：陡＝豐水，平＝枯水。</li>
+            <li class="f" data-fi="1"><b>需水線</b>：固定需水量 D，累積起來是一條斜率為 D 的直線。</li>
+            <li class="f" data-fi="2"><b>決定容量</b>：在曲線的峰點畫需水線（切線），需水線高出曲線最多的地方，就是水庫必須補上的最大虧缺 = <b>所需容量</b>。</li>
+            <li class="f" data-fi="3"><b>反過來</b>：容量已知時，找出最陡、但仍不超過容量的需水線，它的斜率就是可以穩定供應的流量。</li>
+          </ol>
+        </div>
+        <div class="pe-none">
+          <svg class="mc" viewBox="0 0 700 700" aria-label="流量累積曲線示意"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13 互動實驗（水庫 3D） -->
+    <section class="slide" data-layout="lab" data-scene="rv" data-rv='{"step":"rv-lab"}' data-labels="off" data-interactive="true" data-title="互動：水庫要多大">
+      <div class="lab-card no-wheel" data-inset="left">
+        <p class="kicker">互動實驗</p>
+        <h2>水庫要蓋多大？</h2>
+        <p>用習題 8 的月流量，調整需水量 <var>D</var>。左下是流量累積曲線，3D 水庫跟著逐月操作兩年。試著完成：</p>
+        <ol class="tasks" id="tasks">
+          <li data-task="d40"><span>把需水量設成 40 m³/s，讀出需要的容量</span></li>
+          <li data-task="zero"><span>找出不需要水庫的需水量</span></li>
+          <li data-task="mean"><span>把需水量調到超過平均流量，看看會怎樣</span></li>
+        </ol>
+        <button class="reset" type="button" id="resetParams">重設參數</button>
+      </div>
+      <div class="chart-card no-wheel" data-inset="left">
+        <p class="kicker" style="font-size:15px">流量累積曲線（兩年）</p>
+        <canvas class="chart" id="chart" aria-label="流量累積曲線"></canvas>
+        <p class="legend"><span><i class="lg lg--qs"></i>累積流量</span><span><i class="lg" style="background:#c26a1d"></i>需水線</span><span><i class="lg" style="background:#2c9a5b"></i>所需容量 K</span></p>
+      </div>
+      <aside class="phys no-wheel" id="phys" data-inset="right" aria-label="物理參數"></aside>
+    </section>
+
+    <!-- 14 自我檢查 -->
+    <section class="slide" data-layout="paper" data-title="自我檢查">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span></nav>
+      <div class="body">
+        <p class="kicker rise">自我檢查</p>
+        <h2 class="rise" style="--d:.06s">三題確認一下</h2>
+        <div class="quiz" style="margin-top:34px">
+          <div class="q rise" style="--d:.15s" data-answer="分佈模式">
+            <p class="q__stem"><span class="no">01</span>想知道洪水在集水區裡「哪裡、什麼時候」淹，比較適合用？</p>
+            <div class="q__opts"><button type="button">集塊模式</button><button type="button">分佈模式</button><button type="button">統計模式</button><button type="button">物理模型</button></div>
+            <p class="q__fb" data-why="分佈模式考慮參數的空間變異，能描述水流在時間與空間上的變化；集塊模式只能看出口隨時間的變化。"></p>
+          </div>
+          <div class="q rise" style="--d:.25s" data-answer="變平緩">
+            <p class="q__stem"><span class="no">02</span>枯水期時，流量累積曲線的斜率會？</p>
+            <div class="q__opts"><button type="button">變陡</button><button type="button">變平緩</button><button type="button">變成負的</button><button type="button">不變</button></div>
+            <p class="q__fb" data-why="累積曲線的斜率就是流量；流量小，斜率就平緩。累積量只會增加，所以斜率不會是負的。"></p>
+          </div>
+          <div class="q rise" style="--d:.35s" data-num="63" data-tol="0.02">
+            <p class="q__stem"><span class="no">03</span>習題 8：需水 40 m³/s，3–6 月流量分別是 35、25、15、22。這四個月累積虧缺是多少 (m³/s)·月？</p>
+            <div class="q__num"><input type="text" inputmode="decimal" aria-label="答案"><span>(m³/s)·月</span><button type="button">檢查</button></div>
+            <p class="q__fb" data-why="(40−35)+(40−25)+(40−15)+(40−22) = 5+15+25+18 = 63，這就是所需容量，約 1.6×10⁸ m³。"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 15 小結 -->
+    <section class="slide" data-layout="paper" data-title="小結">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-3 模擬、應用與台灣</span></nav>
+      <div class="body cols cols-73">
+        <div>
+          <p class="kicker rise">小結</p>
+          <h2 class="rise" style="--d:.06s">這個單元的三件事</h2>
+          <ol class="goal-list">
+            <li class="rise" style="--d:.15s">數學模式分定率（概念化、參數型）與機率（統計、序率）；空間上分集塊與分佈。</li>
+            <li class="rise" style="--d:.25s">台灣：山多、岩層脆弱、坡陡流急、雨量大又集中，比流量是世界之最。</li>
+            <li class="rise" style="--d:.35s">流量累積曲線：斜率是流量；需水線與曲線的最大差距就是所需的水庫容量。</li>
+          </ol>
+        </div>
+        <div class="next rise" style="--d:.5s">
+          <p class="kicker">下一章</p>
+          <p class="next__t">第 2 章 集水區地文與水文特性</p>
+          <p class="muted" style="font-size:24px">集水區的邊界怎麼劃？河川網路長什麼樣子？出口的歷線又由哪些成份組成？</p>
+          <p class="src" style="margin-top:24px">製作中</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

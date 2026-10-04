@@ -1,0 +1,74 @@
+/* 單元 1-3 專用樣式 */
+
+/* 模式分類樹 */
+.mtree { margin-top: 34px; display: grid; gap: 26px; }
+.mtree__top, .mtree__mid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.mtree__low { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+.mnode { border: 1.5px solid var(--line); border-top: 4px solid var(--accent); background: var(--surface); padding: 14px 20px 16px; border-radius: 4px; display: flex; flex-direction: column; gap: 2px; }
+.mnode b { font-size: 32px; }
+.mnode small { font-size: 18px; color: var(--muted); font-style: italic; }
+.mnode span { font-size: 21px; line-height: 1.45; margin-top: 6px; color: var(--ink); }
+.mnode--dim { border-top-color: var(--line); opacity: .8; }
+.mnode--main { border-top-color: var(--accent-2); }
+.mnode--leaf { border-top-width: 3px; border-top-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.mnode--leaf b { font-size: 27px; }
+.mtree__low .mnode:nth-child(n+3) { border-top-color: color-mix(in srgb, var(--accent-2) 60%, var(--line)); }
+
+/* 應用 */
+.apps { margin-top: 30px; display: grid; gap: 18px; }
+.app { display: grid; grid-template-columns: 380px 60px 1fr 160px; align-items: center; padding: 18px 26px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; font-size: 28px; }
+.app__in { font-weight: 700; color: var(--accent-ink); }
+.app__arrow { color: var(--muted); font-size: 32px; }
+.app__ch { font-family: var(--mono); font-size: 19px; color: var(--accent-2); text-align: right; }
+
+/* 地形分區表 */
+.zones { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 24px; }
+.zones th { font-size: 18px; color: var(--muted); font-weight: 400; text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.zones td { padding: 8px 6px; border-bottom: 1px solid var(--line); }
+.zones td:nth-child(3), .zones td:nth-child(4), .zones th:nth-child(3), .zones th:nth-child(4) { font-family: var(--mono); text-align: right; }
+.zones td:nth-child(4) { color: var(--accent-ink); font-weight: 700; }
+.zones i { display: inline-block; width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
+
+/* 雨量 */
+.rainviz svg { width: 100%; height: 820px; overflow: visible; }
+.col-tw { fill: #2b86e0; } .col-w { fill: #9cc3e4; }
+.col-lab { text-anchor: middle; font-size: 28px; font-weight: 700; fill: var(--ink); }
+.col-base { stroke: var(--ink); stroke-width: 2; }
+.slide.is-play .col-tw { animation: growUp 1.4s var(--ease) .3s both; transform-box: fill-box; transform-origin: bottom; }
+.slide.is-play .col-w { animation: growUp 1.4s var(--ease) .5s both; transform-box: fill-box; transform-origin: bottom; }
+@keyframes growUp { from { transform: scaleY(0); } }
+.ring-bg { fill: var(--bg); }
+.ring-bg2 { fill: var(--surface); stroke: var(--line); }
+.ring-rest { fill: none; stroke: #d9d2c4; stroke-width: 70; }
+.ring-wet { fill: none; stroke: #2b86e0; stroke-width: 70; }
+.ring-big { text-anchor: middle; font-size: 72px; font-weight: 700; fill: #2b86e0; font-family: var(--mono); }
+.ring-sm { text-anchor: middle; font-size: 28px; fill: var(--muted); }
+
+/* 比流量 */
+.sq { width: 100%; height: 210px; display: block; margin-top: 8px; overflow: visible; }
+.sq__grid line { stroke: var(--line); stroke-width: 1.5; }
+.sq__ax { text-anchor: middle; font-size: 15px; fill: var(--muted); font-family: var(--mono); }
+.sq__n { text-anchor: end; font-size: 20px; fill: var(--ink); font-weight: 700; }
+.sq__b { fill: #9cc3e4; transition: width 1.2s var(--ease); }
+.sq__b--tw { fill: #2b86e0; }
+
+/* 月流量長條 */
+.season { width: 100%; height: 100%; max-height: 700px; overflow: visible; }
+.season__t { text-anchor: middle; font-size: 24px; fill: var(--muted); }
+.season__bars rect { fill: #2b86e0; }
+.season__bars rect.dry { fill: #c9a165; }
+.season__bars text { text-anchor: middle; font-size: 18px; fill: var(--muted); font-family: var(--mono); }
+.season__base { stroke: var(--ink); stroke-width: 2; }
+.season__d { stroke: #c26a1d; stroke-width: 3; stroke-dasharray: 10 6; }
+.season__dl { font-size: 20px; fill: #c26a1d; font-weight: 700; }
+
+/* 流量累積曲線示意 */
+.mc { width: 100%; height: 100%; max-height: 760px; overflow: visible; }
+.mc .ax { stroke: var(--ink); stroke-width: 2; fill: none; }
+.mc .curve { stroke: #2b86e0; stroke-width: 5; fill: none; }
+.mc .dl { stroke: #c26a1d; stroke-width: 3.5; fill: none; }
+.mc .gap { stroke: #2c9a5b; stroke-width: 5; }
+.mc text { font-size: 22px; fill: var(--muted); }
+.mc .lab-c { fill: #2b86e0; font-weight: 700; } .mc .lab-d { fill: #c26a1d; font-weight: 700; } .mc .lab-k { fill: #2c9a5b; font-weight: 700; font-size: 26px; }
+.mc .dl2 { stroke: #8e5bb5; stroke-width: 3; stroke-dasharray: 9 6; fill: none; }
+.mc .lab-d2 { fill: #8e5bb5; font-weight: 700; }

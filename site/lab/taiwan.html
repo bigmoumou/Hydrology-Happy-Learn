@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>台灣地形預覽</title>
+  <link rel="stylesheet" href="../assets/base.css">
+  <link rel="stylesheet" href="../assets/deck.css">
+  <style>html,body{height:100%;overflow:hidden} #stage{position:fixed;inset:0}
+    .hud { position: fixed; z-index: 5; left: 20px; top: 20px; padding: 16px 20px; background: color-mix(in srgb, var(--surface) 94%, transparent); border: 1px solid var(--line); border-radius: 6px; font-size: 14px; max-width: 340px; }
+    .hud h1 { font-size: 20px; margin: 0 0 4px; } .hud p { margin: 0 0 8px; color: var(--muted); }
+    .hud label { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; margin-top: 6px; } .hud input { grid-column: 1 / -1; accent-color: var(--accent); }
+    .hud select { font: inherit; }</style>
+  <script type="importmap">
+    { "imports": { "three": "../vendor/three/build/three.module.js", "three/addons/": "../vendor/three/jsm/" } }
+  </script>
+</head>
+<body>
+  <div class="deck" style="--s:0.8"><div id="stage" class="deck__bg"></div></div>
+  <div class="hud">
+    <h1>台灣地形</h1>
+    <p>資料：AWS Terrain Tiles（SRTM 陸地、ETOPO1 海床），約 280 m／像素。</p>
+    <label>垂直誇大 <output id="o">3×</output><input id="ex" type="range" min="1" max="8" step="0.5" value="3"></label>
+    <label>著色 <select id="mode"><option value="relief">地形</option><option value="bands">高程分區</option><option value="lumped">集塊</option><option value="grid">分佈（網格）</option></select></label>
+  </div>
+  <script type="module">
+    import { createTaiwan } from '../scenes/taiwan/scene.js';
+    const p = new URLSearchParams(location.search);
+    const api = await createTaiwan(document.getElementById('stage'), { base: '../data/' });
+    window.taiwan = api; window.hydro = api;
+    if (p.get('step')) api.setStepById(p.get('step'), { instant: true });
+    if (p.get('mode')) { api.setMode(p.get('mode'), true); document.getElementById('mode').value = p.get('mode'); }
+    if (p.has('trop')) api.setTropic(true);
+    const ex = document.getElementById('ex');
+    ex.oninput = () => { api.setExaggeration(+ex.value); document.getElementById('o').textContent = ex.value + '×'; };
+    document.getElementById('mode').onchange = (e) => api.setMode(e.target.value);
+  </script>
+</body>
+</html>

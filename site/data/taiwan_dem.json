@@ -1,0 +1,16 @@
+{
+ "width": 819,
+ "height": 1391,
+ "dtype": "int16",
+ "unit": "m",
+ "order": "row-major, north first",
+ "lon0": 119.9,
+ "lon1": 122.15,
+ "lat0": 21.85,
+ "lat1": 25.35,
+ "mpp_x": 280.2,
+ "mpp_y": 278.2,
+ "source": "AWS Terrain Tiles (Terrarium, z10): SRTM 陸地、ETOPO1/GEBCO 海床",
+ "max": 3844,
+ "min": -4000
+}

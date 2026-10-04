@@ -1,0 +1,35 @@
+# 課本照片（著作權屬原作者，不公開）
+*.pdf
+
+# 系統檔
+.DS_Store
+Thumbs.db
+desktop.ini
+__pycache__/
+
+# 本機工具設定
+.claude/
+
+# 影片：網站只放 HLS（site/media/**/hls/），mp4 母帶與分享檔不進 git
+*.mp4
+!site/media/**/hls/*.mp4
+分享/
+site/media/**/.publish-tmp/
+
+# 製作過程的中間檔（旁白稿 script.json 保留）
+production/**/tts/
+production/**/audio/
+production/**/out/
+production/**/qa/
+production/**/tts_test/
+production/**/timeline.json
+
+# 完整字型（網站用的是 tools/subset_fonts.py 產生的 woff2 子集）
+site/vendor/fonts/*.ttf
+
+# 原始地形圖磚（網站用的是 site/data/taiwan_dem.bin）
+/data/
+
+# 舊版的單一檔案影片（已改成 HLS 資料夾）
+site/media/ch*/u*.vtt
+site/media/ch*/u*.jpg

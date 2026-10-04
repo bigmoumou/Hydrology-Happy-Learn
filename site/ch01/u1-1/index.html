@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>1-1 水文循環</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C11 11 7 16 7 21a9 9 0 0 0 18 0c0-5-4-10-9-18z' fill='%230f6c9b'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/deck.css">
+  <link rel="stylesheet" href="./unit.css">
+  <script type="importmap">
+    { "imports": { "three": "../../vendor/three/build/three.module.js", "three/addons/": "../../vendor/three/jsm/" } }
+  </script>
+</head>
+<body>
+<div class="deck" data-layout="title" data-video="../../media/ch01/u1-1/hls/index.m3u8" data-poster="../../media/ch01/u1-1/poster.jpg">
+  <div class="deck__bg" id="bg3d">
+    <div class="deck__loading" id="loading3d"><b>正在生成 3D 地形</b><span id="loadStage">準備中…</span><i></i></div>
+  </div>
+
+  <div class="deck__stage">
+
+    <!-- 01 封面 -->
+    <section class="slide" data-layout="title" data-step="cover" data-labels="off" data-title="封面">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>第 1 章 導論</span><span>›</span><span>單元 1-1</span></nav>
+      <div class="title-block rise">
+        <p class="kicker">Chapter 1 · Unit 1-1</p>
+        <h1>水文循環</h1>
+        <p class="lede">一滴雨從雲裡落下，回到海洋的旅程</p>
+        <p class="src" style="margin-top:18px">課本 p.3–6</p>
+      </div>
+    </section>
+
+    <!-- 02 學習目標 -->
+    <section class="slide" data-layout="paper" data-title="學習目標">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span></nav>
+      <div class="body cols cols-73">
+        <div>
+          <p class="kicker rise">本單元目標</p>
+          <h2 class="rise" style="--d:.08s">學完這個單元，你會…</h2>
+          <ol class="goal-list">
+            <li class="rise" style="--d:.2s">說出水文學在研究什麼，以及「工程水文學」要解決的問題</li>
+            <li class="rise" style="--d:.3s">用 11 個名詞描述水在大氣、地表與地下之間怎麼移動</li>
+            <li class="rise" style="--d:.4s">分辨汽體傳輸與液體傳輸，看懂課本圖 1-2 的流程</li>
+          </ol>
+        </div>
+        <div>
+          <p class="kicker rise" style="--d:.3s">會用到的名詞</p>
+          <div class="chips">
+            <span class="chip rise" style="--d:.35s">降水<small>precipitation</small></span>
+            <span class="chip rise" style="--d:.39s">截留<small>interception</small></span>
+            <span class="chip rise" style="--d:.43s">窪蓄<small>depression storage</small></span>
+            <span class="chip rise" style="--d:.47s">入滲<small>infiltration</small></span>
+            <span class="chip rise" style="--d:.51s">漫地流<small>overland flow</small></span>
+            <span class="chip rise" style="--d:.55s">地表逕流<small>surface runoff</small></span>
+            <span class="chip rise" style="--d:.59s">中間流<small>interflow</small></span>
+            <span class="chip rise" style="--d:.63s">滲漏<small>percolation</small></span>
+            <span class="chip rise" style="--d:.67s">地下水<small>groundwater</small></span>
+            <span class="chip rise" style="--d:.71s">出滲<small>exfiltration</small></span>
+            <span class="chip rise" style="--d:.75s">蒸發<small>evaporation</small></span>
+            <span class="chip rise" style="--d:.79s">蒸散<small>transpiration</small></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 水文學是什麼 -->
+    <section class="slide" data-layout="paper" data-title="1.1 水文學之定義">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.3</span></nav>
+      <div class="body cols">
+        <div>
+          <p class="kicker rise">1.1 水文學之定義</p>
+          <h2 class="rise" style="--d:.08s">水文學在研究什麼？</h2>
+          <p class="big-def rise" style="--d:.2s; margin-top:34px">水文學（hydrology）屬於地球科學，研究地球上<b>水的發生、循環、分佈</b>、物理與化學特性，以及水和所有生物之間的關係。</p>
+          <div class="f eng" style="margin-top:44px">
+            <p class="kicker">工程水文學 engineering hydrology</p>
+            <p style="margin-top:8px">屬於應用地球科學：用水文學原理，解決人類開發水資源時碰到的工程問題。它模擬水文循環中<span class="em">水體總量與時間分佈</span>的關係，作為工程設計的標準，並評估設施面臨的<span class="em2">風險</span>。</p>
+          </div>
+        </div>
+        <div class="pe-none">
+          <svg class="sci" viewBox="0 0 760 760" aria-label="水文學相關的學科">
+            <g class="sci__links">
+              <line x1="380" y1="380" x2="380" y2="96"/><line x1="380" y1="380" x2="602" y2="203"/><line x1="380" y1="380" x2="657" y2="443"/>
+              <line x1="380" y1="380" x2="503" y2="636"/><line x1="380" y1="380" x2="257" y2="636"/><line x1="380" y1="380" x2="103" y2="443"/><line x1="380" y1="380" x2="158" y2="203"/>
+            </g>
+            <g class="sci__core"><circle cx="380" cy="380" r="104"/><text x="380" y="372">水文學</text><text x="380" y="410" class="en">hydrology</text></g>
+            <g class="sci__n" style="--d:.35s"><circle cx="380" cy="96" r="78"/><text x="380" y="92">氣象學</text><text x="380" y="120" class="en">meteorology</text></g>
+            <g class="sci__n" style="--d:.45s"><circle cx="602" cy="203" r="78"/><text x="602" y="199">氣候學</text><text x="602" y="227" class="en">climatology</text></g>
+            <g class="sci__n" style="--d:.55s"><circle cx="657" cy="443" r="78"/><text x="657" y="439">地質學</text><text x="657" y="467" class="en">geology</text></g>
+            <g class="sci__n" style="--d:.65s"><circle cx="503" cy="636" r="78"/><text x="503" y="632">地理學</text><text x="503" y="660" class="en">geography</text></g>
+            <g class="sci__n" style="--d:.75s"><circle cx="257" cy="636" r="78"/><text x="257" y="632">地形學</text><text x="257" y="660" class="en">geomorphology</text></g>
+            <g class="sci__n" style="--d:.85s"><circle cx="103" cy="443" r="78"/><text x="103" y="439">沉滓學</text><text x="103" y="467" class="en">sedimentology</text></g>
+            <g class="sci__n" style="--d:.95s"><circle cx="158" cy="203" r="78"/><text x="158" y="199">海洋學</text><text x="158" y="227" class="en">oceanography</text></g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 水文循環總覽 -->
+    <section class="slide" data-layout="scene" data-step="overview" data-title="1.2 水文循環總覽">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.3–4・圖 1-1</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">1.2 水文循環 hydrologic cycle</p>
+        <h2>水不停地在循環</h2>
+        <p>地球上的水在<span class="em">大氣、土壤與海洋</span>之間連續循環。</p>
+        <p class="f">最簡單的版本：海面的水吸收太陽能<b>蒸發</b>進入大氣 → 水蒸氣<b>凝結</b>（condensation）成降水 → 以雨、雪、霜落到地表 → 受重力影響經河溪<b>流回海洋</b>。</p>
+        <p class="note">這塊地形左邊是高山、右邊是海，前方切開看得到地底。拖曳畫面可以旋轉。</p>
+      </div>
+    </section>
+
+    <!-- 05 降水 -->
+    <section class="slide" data-layout="scene" data-step="precipitation" data-title="降水 precipitation">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.3</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">液體傳輸 · 1 / 11</p>
+        <h2>降水 <small>precipitation</small></h2>
+        <p>水蒸氣因凝結作用形成雲，再以<span class="em">雨、雪、霜</span>等不同形態，從大氣降到地表。</p>
+        <p class="note">預告：雲為什麼常常聚在山區上空？第 3 章「降雨之成因」會講。</p>
+      </div>
+    </section>
+
+    <!-- 06 截留 -->
+    <section class="slide" data-layout="scene" data-step="interception" data-title="截留 interception">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.4</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">暫時蓄存 · 2 / 11</p>
+        <h2>截留 <small>interception</small></h2>
+        <p>雨落下時，先落在<span class="em">樹梢或建築物</span>上被攔住，這個現象叫截留。</p>
+        <p class="f">被截留的水有一部分會<b>直接蒸發</b>回大氣（圖 1-2：截留 → 蒸發 <var>E</var>），永遠到不了地面；其餘的從樹冠滴落。</p>
+        <div class="legend3d"><span><i class="dot" style="background:#86c6f0"></i>從樹冠滴落的雨水</span></div>
+      </div>
+    </section>
+
+    <!-- 07 窪蓄 -->
+    <section class="slide" data-layout="scene" data-step="depression" data-title="窪蓄 depression storage">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.5</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">暫時蓄存 · 3 / 11</p>
+        <h2>窪蓄 <small>depression storage</small></h2>
+        <p>在地表漫流的水，碰到<span class="em">地面的凹陷處</span>就聚積下來，這叫窪蓄。</p>
+        <p class="f">窪蓄的水之後會蒸發，或慢慢入滲到土壤裡（圖 1-2：窪蓄 → 入滲，以及蒸發散 <var>ET</var>）。</p>
+        <div class="legend3d"><span><i class="dot" style="background:#2b86e0"></i>漫地流（流進窪地或河道）</span></div>
+      </div>
+    </section>
+
+    <!-- 08 入滲 -->
+    <section class="slide" data-layout="scene" data-step="infiltration" data-title="入滲 infiltration">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.4</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">液體傳輸 · 4 / 11</p>
+        <h2>入滲 <small>infiltration</small></h2>
+        <p>直接落到地面的雨滴，<span class="em">一部分由地表滲入土壤</span>，叫入滲。</p>
+        <p class="f">看前方切面：淺藍色粒子由地表往下，穿過深褐色的表土。切面上那條亮藍色的線是<b>地下水位</b>（groundwater table）。</p>
+        <div class="legend3d"><span><i class="dot" style="background:#59c1f2"></i>入滲</span></div>
+      </div>
+    </section>
+
+    <!-- 09 漫地流／地表逕流 -->
+    <section class="slide" data-layout="scene" data-step="overland" data-title="漫地流／地表逕流">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.4</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">液體傳輸 · 5 / 11</p>
+        <h2>漫地流 → 地表逕流</h2>
+        <p>沒有入滲的雨在地表漫流，叫<span class="em">漫地流</span>（overland flow）。</p>
+        <p class="f">漫地流經過河川網路系統、進入河川之後，叫<span class="em">地表逕流</span>（surface runoff）。粒子沿著山坡往低處匯集，進入溪流、河川，最後流入海洋。</p>
+        <p class="note f">為什麼有時下了雨卻沒有漫地流？到第 16 頁的互動實驗自己調看看。</p>
+        <div class="legend3d"><span><i class="dot" style="background:#2b86e0"></i>漫地流 → 地表逕流</span></div>
+      </div>
+    </section>
+
+    <!-- 10 中間流 -->
+    <section class="slide" data-layout="scene" data-step="interflow" data-title="中間流 interflow">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.4</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">液體傳輸 · 6 / 11</p>
+        <h2>中間流 <small>interflow</small></h2>
+        <p>滲入地表的水，在<span class="em">還沒深達地下水位之前</span>，就在淺層側向流動、流出地面進入河川，叫中間流。</p>
+        <p class="note">切面上的小溪：左邊山坡的中間流，最後從溪岸流進溪裡。</p>
+        <div class="legend3d"><span><i class="dot" style="background:#19b39b"></i>中間流</span></div>
+      </div>
+    </section>
+
+    <!-- 11 滲漏、地下水 -->
+    <section class="slide" data-layout="scene" data-step="percolation" data-title="滲漏與地下水">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.4、6</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">通往地下水 · 7–8 / 11</p>
+        <h2>滲漏 → 地下水</h2>
+        <p>有些水直接往深處<span class="em">滲漏</span>（percolation），穿過未飽和層，到達地下水位以下。</p>
+        <p class="f" data-step="groundwater">在地下水層中流移、最後進入河川（或海洋）的水，叫<span class="em">地下水</span>（groundwater）。它流得很慢，所以久旱不雨時河川仍然有水——第 2 章會叫它「基流」。</p>
+        <div class="legend3d"><span><i class="dot" style="background:#3f8fe6"></i>滲漏</span><span><i class="dot" style="background:#1747c9"></i>地下水</span></div>
+      </div>
+    </section>
+
+    <!-- 12 出滲 -->
+    <section class="slide" data-layout="scene" data-step="exfiltration" data-title="出滲 exfiltration">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.6</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">液體傳輸 · 9 / 11</p>
+        <h2>出滲 <small>exfiltration</small></h2>
+        <p>當<span class="em">表層土壤乾燥</span>時，土壤裡的水由下層往上傳輸到地表，叫出滲。</p>
+        <p class="note">方向和入滲相反：入滲是地表 → 土壤，出滲是土壤 → 地表。</p>
+        <div class="legend3d"><span><i class="dot" style="background:#b08a4e"></i>出滲</span></div>
+      </div>
+    </section>
+
+    <!-- 13 蒸發、蒸散 -->
+    <section class="slide" data-layout="scene" data-step="evaporation" data-title="蒸發與蒸散">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.5–6</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">汽體傳輸 · 10–11 / 11</p>
+        <h2>蒸發與蒸散</h2>
+        <p><b>蒸發</b>（evaporation）：日照旺盛時，土壤或水面（窪蓄、河川、湖泊、海洋）的水分子吸收太陽能，由<span class="em">液態轉為汽態</span>。</p>
+        <p class="f" data-step="transpiration"><b>蒸散</b>（transpiration）：土壤中的水經<span class="em">植物根系</span>上傳到莖葉，再散失到大氣中。課本圖 1-2 把兩者合起來寫成蒸發散 <var>ET</var>。</p>
+      </div>
+    </section>
+
+    <!-- 14 兩種傳輸 -->
+    <section class="slide sorter" data-layout="paper" data-title="汽體傳輸 vs 液體傳輸">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.5–6</span></nav>
+      <div class="body">
+        <p class="kicker rise">歸納</p>
+        <h2 class="rise" style="--d:.06s">兩種傳輸現象</h2>
+        <p class="rise muted" style="--d:.12s;font-size:26px;margin-top:6px">按 → 把 11 個名詞分到課本的兩份清單裡。</p>
+        <i class="f" data-flag="sorted"></i>
+        <div class="sorter__area">
+          <div class="sorter__col" style="--cx:0px"><p class="sorter__h">汽體傳輸 <small>vapor-transport</small></p></div>
+          <div class="sorter__col" style="--cx:560px"><p class="sorter__h">液體傳輸 <small>liquid-transport</small></p></div>
+          <div class="sorter__col sorter__col--other" style="--cx:1120px"><p class="sorter__h">不在兩份清單裡 <small>補充說明</small></p>
+            <p class="sorter__note">截留、窪蓄是暫時的蓄存；滲漏是水往地下水去的路徑。</p></div>
+          <span class="chip sorter__chip" style="--x0:0px;--y0:0px;--x1:0px;--y1:90px">蒸發<small>E</small></span>
+          <span class="chip sorter__chip" style="--x0:200px;--y0:0px;--x1:560px;--y1:90px">降水</span>
+          <span class="chip sorter__chip" style="--x0:350px;--y0:0px;--x1:1120px;--y1:90px">截留</span>
+          <span class="chip sorter__chip" style="--x0:500px;--y0:0px;--x1:560px;--y1:168px">漫地流</span>
+          <span class="chip sorter__chip" style="--x0:680px;--y0:0px;--x1:1120px;--y1:168px">窪蓄</span>
+          <span class="chip sorter__chip" style="--x0:840px;--y0:0px;--x1:560px;--y1:246px">入滲</span>
+          <span class="chip sorter__chip" style="--x0:990px;--y0:0px;--x1:0px;--y1:168px">蒸散<small>T</small></span>
+          <span class="chip sorter__chip" style="--x0:1150px;--y0:0px;--x1:560px;--y1:324px">出滲</span>
+          <span class="chip sorter__chip" style="--x0:1300px;--y0:0px;--x1:1120px;--y1:246px">滲漏</span>
+          <span class="chip sorter__chip" style="--x0:1450px;--y0:0px;--x1:560px;--y1:402px">中間流</span>
+          <span class="chip sorter__chip" style="--x0:680px;--y0:78px;--x1:560px;--y1:480px">地下水</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 15 圖 1-2 -->
+    <section class="slide" data-layout="paper" data-title="圖 1-2 水文循環示意圖">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span><span class="src">課本 p.5・圖 1-2（重繪）</span></nav>
+      <div class="body flow">
+        <div class="flow__text">
+          <p class="kicker rise">圖 1-2 重繪</p>
+          <h2 class="rise" style="--d:.06s">從降雨到河川流量</h2>
+          <p class="rise muted" style="--d:.12s;font-size:25px;margin-top:10px">上方輸入是降雨強度隨時間的變化，下方輸出是出口的流量歷線。中間每個方框都是一個過程。</p>
+          <ol class="flow__steps">
+            <li class="f" data-fi="1"><span>降水 <var>i</var>(<var>t</var>) 進入系統</span></li>
+            <li class="f" data-fi="2"><span>地表：截留、窪蓄、漫地流</span></li>
+            <li class="f" data-fi="3"><span>地下：入滲 → 中間流、地下水</span></li>
+            <li class="f" data-fi="4"><span>全部匯成渠流 → 流量歷線 <var>Q</var>(<var>t</var>)</span></li>
+          </ol>
+        </div>
+        <svg class="flowchart" viewBox="0 0 1100 1000" aria-label="水文循環流程圖">
+          <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
+          <!-- 1 降水 -->
+          <g class="f fc" data-fi="1">
+            <g class="hyeto" transform="translate(150 10)"><path d="M0 0 V92 H200" class="ax"/>
+              <rect x="12" y="52" width="16" height="40"/><rect x="30" y="30" width="16" height="62"/><rect x="48" y="62" width="16" height="30"/><rect x="66" y="8" width="16" height="84"/><rect x="84" y="40" width="16" height="52"/><rect x="102" y="70" width="16" height="22"/><rect x="120" y="58" width="16" height="34"/><rect x="138" y="80" width="16" height="12"/>
+              <text x="-8" y="16" class="ax-l">i</text><text x="196" y="112" class="ax-l">t</text></g>
+            <rect class="box box--p" x="420" y="16" width="220" height="80" rx="4"/><text class="bt" x="530" y="50">降水</text><text class="be" x="530" y="78">precipitation</text>
+            <path class="ln" d="M530 96 V130 M110 130 H950"/>
+          </g>
+          <!-- 2 地表 -->
+          <g class="f fc" data-fi="2">
+            <path class="ar" d="M110 130 V196"/><path class="ar" d="M370 130 V196"/><path class="ar" d="M950 130 V196"/>
+            <rect class="box" x="10" y="200" width="200" height="80" rx="4"/><text class="bt" x="110" y="234">截留</text><text class="be" x="110" y="262">interception</text>
+            <rect class="box" x="270" y="200" width="200" height="80" rx="4"/><text class="bt" x="370" y="234">窪蓄</text><text class="be" x="370" y="262">depression storage</text>
+            <rect class="box" x="850" y="200" width="200" height="80" rx="4"/><text class="bt" x="950" y="234">漫地流</text><text class="be" x="950" y="262">overland flow</text>
+            <path class="ar ar--v" d="M60 200 V160"/><text class="et" x="40" y="150">E</text>
+            <path class="ar ar--v" d="M440 200 V160"/><text class="et" x="460" y="168">ET</text>
+          </g>
+          <!-- 3 地下 -->
+          <g class="f fc" data-fi="3">
+            <path class="ar" d="M630 130 V346"/><path class="ar" d="M370 280 V380 H516"/>
+            <rect class="box" x="520" y="350" width="220" height="80" rx="4"/><text class="bt" x="630" y="384">入滲</text><text class="be" x="630" y="412">infiltration</text>
+            <path class="ar" d="M560 430 V470 H310 V496"/><path class="ar" d="M690 430 V556"/>
+            <rect class="box" x="210" y="500" width="200" height="80" rx="4"/><text class="bt" x="310" y="534">中間流</text><text class="be" x="310" y="562">interflow</text>
+            <rect class="box" x="590" y="560" width="200" height="80" rx="4"/><text class="bt" x="690" y="594">地下水</text><text class="be" x="690" y="622">groundwater</text>
+            <path class="ar ar--v" d="M230 500 V462"/><text class="et" x="170" y="470">ET</text>
+            <path class="ar ar--v" d="M790 600 H846"/><text class="et" x="856" y="608">ET</text>
+          </g>
+          <!-- 4 渠流與歷線 -->
+          <g class="f fc" data-fi="4">
+            <path class="ar" d="M310 580 V706 H556"/><path class="ar" d="M690 640 V686"/><path class="ar" d="M950 280 V730 H804"/>
+            <rect class="box box--q" x="560" y="690" width="240" height="80" rx="4"/><text class="bt" x="680" y="724">渠流</text><text class="be" x="680" y="752">channel flow</text>
+            <path class="ar" d="M680 770 V808"/>
+            <g transform="translate(590 812)"><path d="M0 0 V170 H210" class="ax"/><path d="M0 150 C30 150 44 30 72 30 C104 30 120 140 206 156" class="hydro"/>
+              <text x="-30" y="22" class="ax-l">Q</text><text x="214" y="178" class="ax-l">t</text></g>
+            <circle r="7" class="drop drop--s"><animateMotion dur="3.2s" repeatCount="indefinite" path="M950 130 V730 H804"/></circle>
+            <circle r="7" class="drop drop--i"><animateMotion dur="3.6s" repeatCount="indefinite" path="M630 130 V430 M560 430 V470 H310 V706 H556"/></circle>
+            <circle r="7" class="drop drop--g"><animateMotion dur="4.6s" repeatCount="indefinite" path="M630 130 V430 M690 430 V690"/></circle>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- 16 互動實驗 -->
+    <section class="slide" data-layout="lab" data-step="overview" data-labels="off" data-interactive="true" data-title="互動：一場降雨的水帳">
+      <div class="lab-card no-wheel" data-inset="left">
+        <p class="kicker">互動實驗</p>
+        <h2>一場降雨的水帳</h2>
+        <p>右邊的滑桿控制雨和土壤，3D 畫面、式子和下方的歷線會一起變。試著完成：</p>
+        <ol class="tasks" id="tasks">
+          <li data-task="noOverland"><span>讓雨全部入滲，看不到漫地流（比較 <var>i</var> 和 <var>f</var>）</span></li>
+          <li data-task="interflow"><span>讓土壤裝滿、產生中間流（<var>F</var> 要超過 <var>S</var><sub>e</sub>）</span></li>
+          <li data-task="peak"><span>讓出口洪峰超過 30 mm/hr</span></li>
+        </ol>
+        <button class="reset" type="button" id="resetParams">重設參數</button>
+      </div>
+      <div class="chart-card no-wheel" data-inset="left">
+        <p class="kicker" style="font-size:15px">04 降雨與出口歷線 · 圖 1-2、2-9</p>
+        <canvas class="chart" id="chart" aria-label="降雨組體圖與流量歷線"></canvas>
+        <p class="legend"><span><i class="lg lg--qs"></i>地表逕流</span><span><i class="lg lg--qi"></i>中間流</span><span><i class="lg lg--qg"></i>地下水</span><span><i class="lg lg--f"></i>入滲容量 <var>f</var></span></p>
+        <p class="ph__derived" data-o="peak"></p>
+      </div>
+      <aside class="phys no-wheel" id="phys" data-inset="right" aria-label="物理參數"></aside>
+    </section>
+
+    <!-- 17 自我檢查 -->
+    <section class="slide" data-layout="paper" data-title="自我檢查">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span></nav>
+      <div class="body">
+        <p class="kicker rise">自我檢查</p>
+        <h2 class="rise" style="--d:.06s">三題確認一下</h2>
+        <div class="quiz" style="margin-top:34px">
+          <div class="q rise" style="--d:.15s" data-answer="中間流">
+            <p class="q__stem"><span class="no">01</span>雨水滲入土壤，還沒到地下水位就側向流出、進入河川，這叫什麼？</p>
+            <div class="q__opts"><button type="button">滲漏</button><button type="button">中間流</button><button type="button">出滲</button><button type="button">漫地流</button></div>
+            <p class="q__fb" data-why="中間流的關鍵是「還沒到地下水位」就側向流出；滲漏是往下到地下水位以下。"></p>
+          </div>
+          <div class="q rise" style="--d:.25s" data-answer="蒸散">
+            <p class="q__stem"><span class="no">02</span>下面哪一個屬於「汽體傳輸」？</p>
+            <div class="q__opts"><button type="button">出滲</button><button type="button">蒸散</button><button type="button">入滲</button><button type="button">降水</button></div>
+            <p class="q__fb" data-why="課本的汽體傳輸只有兩個：蒸發與蒸散。其餘三個是液體傳輸。"></p>
+          </div>
+          <div class="q rise" style="--d:.35s" data-num="5" data-tol="0.05">
+            <p class="q__stem"><span class="no">03</span>降雨期間 <var>P</var> = 120 mm、入滲 <var>INF</var> = 58 mm、地表逕流 <var>Q</var> = 57 mm，<var>E</var>、<var>T</var> 忽略。依式 (1-2)，地表蓄水改變量 Δ<var>S</var><sub>s</sub> 是多少 mm？</p>
+            <div class="q__num"><input type="text" inputmode="decimal" aria-label="答案（mm）"><span>mm</span><button type="button">檢查</button></div>
+            <p class="q__fb" data-why="Δ𝑆s = 120 − (0 + 0 + 58 + 57) = 5 mm，這 5 mm 暫存在截留和窪蓄裡。"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 18 小結 -->
+    <section class="slide" data-layout="paper" data-title="小結">
+      <nav class="crumb"><a href="../../index.html">水文學自學</a><span>›</span><span>1-1 水文循環</span></nav>
+      <div class="body cols cols-73">
+        <div>
+          <p class="kicker rise">小結</p>
+          <h2 class="rise" style="--d:.06s">這個單元的三件事</h2>
+          <ol class="goal-list">
+            <li class="rise" style="--d:.15s">水文學研究水的發生、循環與分佈；工程水文學用它來定設計標準、評估風險。</li>
+            <li class="rise" style="--d:.25s">雨落地後分成地表（截留、窪蓄、漫地流）與地下（入滲 → 中間流、滲漏 → 地下水）兩條路，最後匯成河川流量。</li>
+            <li class="rise" style="--d:.35s">汽體傳輸只有蒸發、蒸散；降水、漫地流、入滲、出滲、中間流、地下水是液體傳輸。</li>
+          </ol>
+        </div>
+        <div class="next rise" style="--d:.5s">
+          <p class="kicker">下一個單元</p>
+          <p class="next__t">1-2 水文平衡方程式</p>
+          <p class="muted" style="font-size:24px">把剛剛的「水帳」寫成式 (1-1)～(1-4)，並算例題 1.1。</p>
+          <p class="src" style="margin-top:24px"><a href="../u1-2/index.html">前往 1-2 →</a></p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

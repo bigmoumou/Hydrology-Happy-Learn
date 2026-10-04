@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>水文學自學</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C11 11 7 16 7 21a9 9 0 0 0 18 0c0-5-4-10-9-18z' fill='%230f6c9b'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/base.css">
+  <link rel="stylesheet" href="assets/deck.css">
+  <style>
+    .home { background: #ebe6dc; }
+    .home .slide { opacity: 1; visibility: visible; }
+    .home__bg { position: absolute; inset: 0; background: url("media/home-hero.jpg") 70% 26% / cover no-repeat; }
+    .home__bg::after { content: ""; position: absolute; inset: 0;
+      background: linear-gradient(90deg, rgba(241, 238, 231, .97) 0%, rgba(241, 238, 231, .84) 30%, rgba(241, 238, 231, .12) 58%, rgba(241, 238, 231, 0) 75%),
+                  linear-gradient(0deg, rgba(235, 230, 220, .78) 0%, rgba(235, 230, 220, 0) 48%); }
+    .home__head { position: absolute; left: 120px; top: 86px; width: 900px; }
+    .home__head .kicker { font-size: 21px; letter-spacing: .2em; color: #8a4f12; }
+    .home__head h1 { font-size: 118px; margin: 4px 0 8px; letter-spacing: .08em; color: #12171a; }
+    .home__head p { font-size: 27px; color: #2f383d; margin: 0; line-height: 1.6; }
+    .home__how { margin-top: 24px !important; font-size: 19px !important; color: #4a535a !important; display: flex; gap: 24px; }
+    .home__how kbd { font-family: var(--mono); font-size: 16px; border: 1px solid rgba(255,255,255,.9); border-bottom-width: 2px; border-radius: 6px; padding: 1px 8px; background: rgba(255,255,255,.75); margin: 0 3px; }
+    .chapters { position: absolute; left: 120px; right: 120px; bottom: 76px; display: grid; grid-template-columns: 1.6fr 1.6fr 1fr 1fr 1fr 1fr; grid-auto-rows: 200px; gap: 20px; }
+    .ch { position: relative; padding: 18px 22px 16px; display: flex; flex-direction: column; border-radius: 22px; overflow: hidden;
+      background: linear-gradient(135deg, rgba(255,255,255,.7), rgba(255,255,255,.44)); border: 1px solid rgba(255,255,255,.8);
+      box-shadow: 0 16px 44px rgba(28,38,48,.14), inset 0 1px 0 rgba(255,255,255,.95); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); }
+    .ch.is-open { grid-row: span 2; background: linear-gradient(135deg, rgba(255,255,255,.92), rgba(255,255,255,.74)); }
+    .ch.is-open::before { content: ""; position: absolute; left: 22px; right: 22px; top: 0; height: 4px; border-radius: 0 0 4px 4px; background: var(--accent); }
+    .ch__no { font-family: var(--mono); font-size: 16px; color: #8a4f12; letter-spacing: .12em; }
+    .ch__t { font-family: var(--serif); font-size: 28px; font-weight: 800; margin: 2px 0 0; line-height: 1.3; color: #12171a; }
+    .ch.is-open .ch__t { font-size: 34px; }
+    .ch__p { font-family: var(--mono); font-size: 15px; color: #59616a; }
+    .ch ul { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 12px; font-size: 21px; }
+    .ch li { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; color: #59616a; }
+    .ch li a { color: #0b557b; font-weight: 700; text-decoration: none; }
+    .ch li a:hover { text-decoration: underline; }
+    .ch li .st { font-size: 14px; font-family: var(--mono); color: #6b737a; white-space: nowrap; }
+    .ch li .st.ok { color: #23804a; }
+    .ch__soon { margin-top: auto; font-size: 16px; color: #6b737a; }
+    .home__foot { position: absolute; left: 120px; right: 120px; bottom: 26px; display: flex; justify-content: space-between; gap: 24px; font-size: 15px; color: #59616a; }
+    .home__foot a { color: #0b557b; }
+  </style>
+</head>
+<body>
+<div class="deck home" data-layout="title">
+  <div class="home__bg"></div>
+  <div class="deck__stage">
+    <section class="slide is-active is-play" data-layout="title">
+      <header class="home__head">
+        <p class="kicker rise">HYDROLOGY · 自學用</p>
+        <h1 class="rise" style="--d:.05s">水文學自學</h1>
+        <p class="rise" style="--d:.1s">依課本十章製作。每個單元是一組全螢幕投影片，<br>有 3D 模型、動畫、互動實驗、自我檢查和教學影片。</p>
+        <p class="home__how rise" style="--d:.15s"><span><kbd>→</kbd><kbd>←</kbd> 換頁</span><span><kbd>G</kbd> 總覽</span><span><kbd>F</kbd> 全螢幕</span><span><kbd>V</kbd> 看影片</span></p>
+      </header>
+      <div class="chapters">
+        <article class="ch is-open rise" style="--d:.2s">
+          <span class="ch__no">CH 01</span><span class="ch__t">導論</span><span class="ch__p">p.1–13</span>
+          <ul>
+            <li><a href="ch01/u1-1/index.html">1-1 水文循環</a><span class="st ok">● 完成</span></li>
+            <li><a href="ch01/u1-2/index.html">1-2 水文平衡方程式</a><span class="st ok">● 完成</span></li>
+            <li><a href="ch01/u1-3/index.html">1-3 模擬、應用與台灣</a><span class="st ok">● 完成</span></li>
+          </ul>
+        </article>
+        <article class="ch is-open rise" style="--d:.24s">
+          <span class="ch__no">CH 02</span><span class="ch__t">集水區地文與水文特性</span><span class="ch__p">p.15–42</span>
+          <ul>
+            <li>2-1 邊界與河川網路<span class="st">製作中</span></li>
+            <li>2-2 面積、形狀、坡度<span class="st">製作中</span></li>
+            <li>2-3 級序定律、排水密度<span class="st">製作中</span></li>
+            <li>2-4 逕流成份、基流分離<span class="st">製作中</span></li>
+            <li>2-5 部分面積、延時曲線<span class="st">製作中</span></li>
+          </ul>
+        </article>
+        <article class="ch rise" style="--d:.28s"><span class="ch__no">CH 03</span><span class="ch__t">降雨</span><span class="ch__p">p.43–86</span><span class="ch__soon">等你拍照</span></article>
+        <article class="ch rise" style="--d:.31s"><span class="ch__no">CH 04</span><span class="ch__t">蒸發與蒸散</span><span class="ch__p">p.87–106</span><span class="ch__soon">等你拍照</span></article>
+        <article class="ch rise" style="--d:.34s"><span class="ch__no">CH 05</span><span class="ch__t">入滲</span><span class="ch__p">p.107–150</span><span class="ch__soon">等你拍照</span></article>
+        <article class="ch rise" style="--d:.37s"><span class="ch__no">CH 06</span><span class="ch__t">地下水與水井力學</span><span class="ch__p">p.151–200</span><span class="ch__soon">等你拍照</span></article>
+        <article class="ch rise" style="--d:.40s"><span class="ch__no">CH 07</span><span class="ch__t">集水區降雨逕流演算</span><span class="ch__p">p.201–260</span><span class="ch__soon">等你拍照</span></article>
+        <article class="ch rise" style="--d:.43s"><span class="ch__no">CH 08</span><span class="ch__t">水庫演算與河道演算</span><span class="ch__p">p.261–300</span><span class="ch__soon">等你拍照</span></article>
+        <article class="ch rise" style="--d:.46s"><span class="ch__no">CH 09</span><span class="ch__t">水文統計與頻率分析</span><span class="ch__p">p.301–340</span><span class="ch__soon">等你拍照</span></article>
+        <article class="ch rise" style="--d:.49s"><span class="ch__no">CH 10</span><span class="ch__t">水文量測</span><span class="ch__p">p.341–</span><span class="ch__soon">等你拍照</span></article>
+      </div>
+      <footer class="home__foot rise" style="--d:.55s">
+        <span>依據一本中文大學教科書《水文學》製作的個人自學筆記；內容為重新撰寫，課本原文、原圖與習題的著作權屬原作者與出版社。</span>
+        <span><a href="https://github.com/bigmoumou/Hydrology-Happy-Learn">GitHub</a>　程式碼 MIT · 內容保留權利</span>
+      </footer>
+    </section>
+  </div>
+</div>
+<script>
+  // 與投影片相同：1920×1080 等比縮放，不捲動
+  const root = document.querySelector('.deck');
+  function fit() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    root.style.setProperty('--s', s);
+    root.style.setProperty('--ox', `${(innerWidth - 1920 * s) / 2}px`);
+    root.style.setProperty('--oy', `${(innerHeight - 1080 * s) / 2}px`);
+  }
+  fit(); addEventListener('resize', fit);
+</script>
+</body>
+</html>

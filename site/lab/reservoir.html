@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>水庫場景預覽</title>
+  <link rel="stylesheet" href="../assets/base.css">
+  <link rel="stylesheet" href="../assets/deck.css">
+  <style>html,body{height:100%;overflow:hidden} #stage{position:fixed;inset:0}</style>
+  <script type="importmap">
+    { "imports": { "three": "../vendor/three/build/three.module.js", "three/addons/": "../vendor/three/jsm/" } }
+  </script>
+</head>
+<body>
+  <div class="deck" style="--s:0.85"><div id="stage" class="deck__bg"></div></div>
+  <script type="module">
+    import { createReservoir } from '../scenes/reservoir/scene.js';
+    const p = new URLSearchParams(location.search);
+    const rv = await createReservoir(document.getElementById('stage'), {});
+    rv.setStepById(p.get('step') || 'rv-overview', { instant: true });
+    rv.setLevel(+(p.get('L') || 12.5));
+    rv.setFlows({ I: +(p.get('I') || 0.6), O: +(p.get('O') || 0.4), spill: +(p.get('sp') || 0) });
+    rv.setRate(+(p.get('r') || 0.4));
+    window.rv = rv; window.hydro = rv;
+  </script>
+</body>
+</html>

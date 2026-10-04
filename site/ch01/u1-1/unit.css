@@ -1,0 +1,58 @@
+/* 單元 1-1 專用樣式 */
+
+/* 相關學科圖 */
+.sci { width: 100%; height: 100%; max-height: 780px; display: block; overflow: visible; }
+.sci text { text-anchor: middle; font-size: 34px; font-weight: 700; fill: var(--ink); font-family: var(--font); }
+.sci text.en { font-size: 19px; font-weight: 400; font-style: italic; fill: var(--muted); }
+.sci__core circle { fill: var(--accent); }
+.sci__core text { fill: #fff; font-size: 44px; }
+.sci__core text.en { fill: rgba(255,255,255,.85); font-size: 22px; }
+.sci__n circle { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
+.sci__links line { stroke: var(--accent); stroke-opacity: .35; stroke-width: 2; stroke-dasharray: 340; stroke-dashoffset: 340; }
+.slide.is-play .sci__links line { animation: draw 1.1s var(--ease) .25s forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.sci__n, .sci__core { opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.85); }
+.slide.is-play .sci__core { animation: pop .6s var(--ease) .1s forwards; }
+.slide.is-play .sci__n { animation: pop .6s var(--ease) forwards; animation-delay: var(--d); }
+@keyframes pop { to { opacity: 1; transform: none; } }
+.eng { border-top: 1px solid var(--line); padding-top: 22px; }
+
+/* 名詞分類動畫 */
+.sorter__area { position: relative; margin-top: 46px; height: 600px; }
+.sorter__col { position: absolute; left: var(--cx); top: 0; width: 520px; height: 590px; border-top: 3px solid var(--accent); opacity: 0; transition: opacity .5s var(--ease) .25s; }
+.sorter__col--other { border-top-color: var(--line); }
+.sorter__h { font-size: 32px; font-weight: 700; margin: 12px 0 0; }
+.sorter__h small { font-size: 19px; font-weight: 400; color: var(--muted); font-style: italic; margin-left: 8px; }
+.sorter__note { position: absolute; top: 330px; font-size: 23px; color: var(--muted); line-height: 1.5; }
+.sorter__chip { position: absolute; left: 0; top: 0; font-size: 30px; padding: 8px 22px; transform: translate(var(--x0), var(--y0)); transition: transform .9s var(--ease); background: var(--surface); }
+.slide.flag-sorted .sorter__col { opacity: 1; }
+.slide.flag-sorted .sorter__chip { transform: translate(var(--x1), var(--y1)); }
+.sorter__chip:nth-of-type(3n) { transition-delay: .05s; } .sorter__chip:nth-of-type(3n+1) { transition-delay: .12s; }
+
+/* 圖 1-2 流程圖 */
+.flow { display: grid; grid-template-columns: 560px 1fr; gap: 60px; }
+.flow__steps { list-style: none; padding: 0; margin: 36px 0 0; counter-reset: s; }
+.flow__steps li { counter-increment: s; display: grid; grid-template-columns: 54px 1fr; padding: 14px 0; border-top: 1px solid var(--line); font-size: 27px; }
+.flow__steps li::before { content: counter(s); font-family: var(--mono); color: var(--accent); }
+.flowchart { width: 100%; height: 830px; display: block; overflow: visible; color: var(--muted); }
+.flowchart .box { fill: var(--surface); stroke: var(--ink); stroke-opacity: .55; stroke-width: 2; }
+.flowchart .box--p { stroke: var(--accent); stroke-opacity: 1; }
+.flowchart .box--q { stroke: var(--accent); stroke-opacity: 1; fill: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+.flowchart .bt { text-anchor: middle; font-size: 30px; font-weight: 700; fill: var(--ink); font-family: var(--font); }
+.flowchart .be { text-anchor: middle; font-size: 19px; font-style: italic; fill: var(--muted); font-family: var(--font); }
+.flowchart .ln, .flowchart .ar { fill: none; stroke: currentColor; stroke-width: 2.2; }
+.flowchart .ar { marker-end: url(#ah); }
+.flowchart .ar--v { stroke: var(--accent-2); color: var(--accent-2); }
+.flowchart .et { font-size: 24px; font-style: italic; font-weight: 700; fill: var(--accent-2); font-family: "Cambria Math", "Times New Roman", serif; }
+.flowchart .ax { fill: none; stroke: var(--ink); stroke-width: 2; }
+.flowchart .ax-l { font-size: 24px; font-style: italic; fill: var(--ink); font-family: "Cambria Math", "Times New Roman", serif; }
+.flowchart .hyeto rect { fill: #8796a3; }
+.flowchart .hydro { fill: none; stroke: var(--accent); stroke-width: 4; }
+.flowchart .drop { opacity: .9; }
+.flowchart .drop--s { fill: #2b86e0; } .flowchart .drop--i { fill: #19b39b; } .flowchart .drop--g { fill: #1747c9; }
+.flowchart g.f { transform: translateY(10px); }
+.flowchart g.f.is-in { transform: none; }
+
+/* 下一單元 */
+.next { align-self: center; border: 1px solid var(--line); border-left: 6px solid var(--accent); padding: 36px 40px; background: var(--surface); }
+.next__t { font-size: 46px; font-weight: 700; margin: 6px 0 10px !important; }

@@ -1,0 +1,11 @@
+# Cloudflare Pages 回應標頭（GitHub Pages 會忽略這個檔案）
+# 影片小段、字型、程式庫都很少變動，讓瀏覽器和 CDN 快取久一點；網頁本身維持預設（每次確認是否有新版）
+
+/media/*
+  Cache-Control: public, max-age=86400
+
+/vendor/*
+  Cache-Control: public, max-age=604800
+
+/data/*
+  Cache-Control: public, max-age=604800
