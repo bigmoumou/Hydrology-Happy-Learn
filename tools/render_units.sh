@@ -7,7 +7,7 @@ for u in "$@"; do
   name=$(basename "$u" | sed 's/^u//')          # u1-2 -> 1-2
   ch=$(dirname "$u")                            # ch01
   echo "=== $u ($name) ==="
-  PYTHONUNBUFFERED=1 $OV python -u tools/make_video.py "production/$u"
+  PYTHONUNBUFFERED=1 $OV python -u tools/make_video.py "production/$u" ${BASE:+--base "$BASE"}
   title=$(PYTHONIOENCODING=utf-8 python -c "import json,sys; print(json.load(open(sys.argv[1], encoding='utf-8'))['unit'])" "production/$u/script.json")
   bash tools/publish-video.sh "production/$u/out/$name.mp4" "site/media/$u" 3 "水文學 $title"
   $OV python tools/qa_sheet.py "production/$u" "production/$u/out/$name.mp4"

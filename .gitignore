@@ -33,3 +33,6 @@ site/vendor/fonts/*.ttf
 # 舊版的單一檔案影片（已改成 HLS 資料夾）
 site/media/ch*/u*.vtt
 site/media/ch*/u*.jpg
+
+# 錄影記錄
+production/*.log
