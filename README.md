@@ -2,6 +2,8 @@
 
 用全螢幕投影片、Three.js 3D 模型、互動實驗和教學影片，自學大學《水文學》。
 
+**網站：<https://hydrology-happy-learn.pages.dev/>**（直接用瀏覽器打開就能看，不用下載任何東西）
+
 ![首頁：3D 水文循環方塊圖與章節卡片](site/media/home-hero.jpg)
 
 ## 內容
@@ -22,7 +24,19 @@
 
 本站是依據一本中文大學教科書《水文學》第 1、2 章製作的**個人自學筆記**。內容以自己的話重寫、圖表為重新繪製，課本原文、原圖與習題的著作權屬於原作者與出版社。本 repo 不包含課本的掃描或照片。
 
-## 在本機打開
+## 部署
+
+程式碼放在這個 GitHub repo，網站由 Cloudflare Pages 從 repo 自動部署：push 到 `main` 後大約 30 秒就會更新到 <https://hydrology-happy-learn.pages.dev/>（建置指令留空，輸出目錄 `site`）。影片小段經 Cloudflare 的 CDN 快取，各地載入都快。
+
+影片只放 HLS（`site/media/<章>/<單元>/hls/`）：Cloudflare Pages 單一檔案上限 25 MiB，也不支援 Range 請求，mp4 放上去無法拖曳。推上去之前執行：
+
+```bash
+node tools/check.mjs
+```
+
+會檢查檔案大小、檔案數和所有連結。
+
+### 在自己電腦上開發（只有要修改網站時才需要）
 
 需要 Python 3（只用標準函式庫）：
 
@@ -33,18 +47,6 @@ python tools/serve.py
 然後打開 <http://127.0.0.1:8790/>。Windows 也可以直接雙擊 `serve.bat`，Mac 用 `serve.command`。
 
 網站是純 HTML、CSS、JavaScript（ES modules），沒有建置步驟；three.js、hls.js 和字型都在 `site/vendor/`，可以完全離線使用。
-
-## 部署
-
-`site/` 就是網站根目錄，放在 Cloudflare Pages（push 到 `main` 自動部署，建置指令留空，輸出目錄 `site`）。
-
-影片只放 HLS（`site/media/<章>/<單元>/hls/`）：Cloudflare Pages 單一檔案上限 25 MiB，也不支援 Range 請求，mp4 放上去無法拖曳。推上去之前執行：
-
-```bash
-node tools/check.mjs
-```
-
-會檢查檔案大小、檔案數和所有連結。
 
 ## 怎麼做的
 
