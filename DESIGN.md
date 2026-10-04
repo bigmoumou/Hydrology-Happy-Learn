@@ -285,3 +285,8 @@ bash ~/.claude/skills/opus-video/scripts/ov python tools/make_video.py productio
 - **修掉的舊 bug**：水庫、台灣場景回傳物件用 `...stage` 展開，`time`、`step` 被凍成 0，互動實驗依時間推進的動畫停住；改成原型繼承。
 - **開發用檢視頁**：`lab/scene3d.html?s=hydro|rv|tw&step=<id>&labels=0`，提供 3d-model skill 的 `window.__app` 截圖介面。截圖：`bash ~/.claude/skills/3d-model/scripts/shoot "http://127.0.0.1:8790/lab/scene3d.html?s=hydro" --sheet --tag r1`。
 - 純 CPU（SwiftShader 軟體渲染）實測不到 1 fps，瓶頸是幾千棵樹的幾何量；使用者決定只針對有顯卡的電腦。
+- **效能優化（同日第二輪，畫質幾乎不變）**：
+  - GTAO 改用半解析度計算，AO 半徑隨鏡頭距離縮放（全景大、近拍小）。近拍時原本每格多花約 5.6 ms，主要就是這項。
+  - 樹依位置分成 24 單位見方的地塊（`chunkedInstances`），畫面外整塊剔除。
+  - 遠處地塊換簡化模型（`TreeLOD`：離鏡頭超過 80 換、回到 68 以內換回），約只有原本 4 成的面數；做影片（`?capture`）時關掉。
+  - 實測（RTX 4070 Ti、2 倍像素螢幕、不鎖幀率）：水文循環全景 207→308 fps、截留近拍 123→247、滲漏 120→243；水庫全景 150→293、大壩 159→288。量測腳本在對話 scratchpad 的 gpuperf.py（關 vsync，每組先暖機一次）。

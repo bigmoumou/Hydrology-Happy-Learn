@@ -10,7 +10,7 @@ import { mulberry32, createNoise2D, fbm, smoothstep, clamp, lerp } from '../lib/
 import { sampleBilinear } from '../lib/grid.js';
 import { makeWaterNormal, makeDetailNormal, makePuffTexture } from '../lib/textures.js';
 import { FlowSystem, chaikin } from '../lib/flows.js';
-import { coniferGeometry, broadleafGeometry, palmGeometry, shrubGeometry, treeMaterial, wetUniform } from '../lib/trees.js';
+import { coniferGeometry, broadleafGeometry, palmGeometry, shrubGeometry, treeMaterial, wetUniform, chunkedInstances, TreeLOD } from '../lib/trees.js';
 import { STEPS } from './steps.js';
 import { createPost } from '../lib/post.js';
 import { GLSL_FACE, faceIndex, addPlinth } from '../lib/stage.js';
@@ -64,7 +64,7 @@ export async function createHydroCycle(container, opts = {}) {
   controls.maxPolarAngle = Math.PI * 0.495;
   controls.update();
   // 後製（GTAO 接觸陰影、bloom）與畫質分級；像素比例也由它管
-  const post = createPost(renderer, scene, camera, { level: quality, capture, ao: { radius: 2.4 } });
+  const post = createPost(renderer, scene, camera, { level: quality, capture, ao: { radius: 2.4, distance: () => camera.position.distanceTo(controls.target) } });
 
   // ---------- 光與環境 ----------
   const sunDir = new THREE.Vector3(-0.52, 0.66, 0.54).normalize();
@@ -668,14 +668,16 @@ export async function createHydroCycle(container, opts = {}) {
 
   // ---------- 樹木：針葉、闊葉、檳榔、灌木 ----------
   const trees = [];
+  // 遠處的樹用簡化模型；做影片（網址有 ?capture）時關掉
+  const treeLOD = new TreeLOD({ enabled: !capture && !new URLSearchParams(location.search).has('capture') });
   let heroSpot = null;
   const heroWet = { value: 0 };
   {
     const species = {
-      conA: { geo: coniferGeometry(11), top: 1.6, list: [] },
-      conB: { geo: coniferGeometry(29), top: 1.6, list: [] },
-      brA: { geo: broadleafGeometry(5), top: 1.45, list: [] },
-      brB: { geo: broadleafGeometry(17), top: 1.45, list: [] },
+      conA: { geo: coniferGeometry(11), lo: coniferGeometry(11, 1), top: 1.6, list: [] },
+      conB: { geo: coniferGeometry(29), lo: coniferGeometry(29, 1), top: 1.6, list: [] },
+      brA: { geo: broadleafGeometry(5), lo: broadleafGeometry(5, 1), top: 1.45, list: [] },
+      brB: { geo: broadleafGeometry(17), lo: broadleafGeometry(17, 1), top: 1.45, list: [] },
       palm: { geo: palmGeometry(3), top: 2.1, list: [], double: true },
       shrub: { geo: shrubGeometry(7), top: 0.4, list: [] },
     };
@@ -733,17 +735,14 @@ export async function createHydroCycle(container, opts = {}) {
     const mtx = new THREE.Matrix4(), qq = new THREE.Quaternion(), e = new THREE.Euler(), col = new THREE.Color();
     for (const sp of Object.values(species)) {
       if (!sp.list.length) continue;
-      const mesh = new THREE.InstancedMesh(sp.geo, sp.double ? matD : matF, sp.list.length);
-      sp.list.forEach((t2, i) => {
+      const items = sp.list.map((t2) => {
         e.set((rand() - 0.5) * 0.06, t2.rot, (rand() - 0.5) * 0.06); qq.setFromEuler(e);
         mtx.compose(new THREE.Vector3(t2.x, t2.y - 0.05, t2.z), qq, new THREE.Vector3(t2.s, t2.s * (0.92 + 0.25 * (t2.tint - 0.82)), t2.s));
-        mesh.setMatrixAt(i, mtx);
         col.setRGB(t2.tint * (1 - t2.hue), t2.tint, t2.tint * (1 + t2.hue * 2));
-        mesh.setColorAt(i, col);
         trees.push({ ...t2, top: sp.top * t2.s });
+        return { x: t2.x, z: t2.z, matrix: mtx.clone(), color: col.clone() };
       });
-      mesh.castShadow = true; mesh.receiveShadow = true;
-      scene.add(mesh);
+      for (const mesh of chunkedInstances(sp.geo, sp.double ? matD : matF, items, 24, sp.lo, treeLOD)) scene.add(mesh);
     }
     {
       const s = 1.9;
@@ -1264,6 +1263,7 @@ export async function createHydroCycle(container, opts = {}) {
     timeUniform.value = t;
     for (const f of Object.values(flows)) f.update(t);
     villageApi.update(t);
+    treeLOD.update(camera.position);
   }
 
   // 左側面板遮住的寬度：把投影中心往右移，讓模型置中在可見區域
@@ -1345,6 +1345,7 @@ export async function createHydroCycle(container, opts = {}) {
     get qualityLevel() { return post.level; },
     get fps() { return post.fps; },
     tune: (p) => post.tune(p),
+    post,
     camera, controls, scene, renderer,
     info: { ms: T.ms }, terrain: T, village,
     dispose() { cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); container.innerHTML = ''; },

@@ -41,7 +41,7 @@ export function createStage(container, { quality = 'high', capture = false, fov 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.dampingFactor = 0.08;
   controls.minDistance = 6; controls.maxDistance = 320; controls.maxPolarAngle = Math.PI * 0.495;
-  const post = createPost(renderer, scene, camera, { level: quality, capture, ao: { radius: aoRadius } });
+  const post = createPost(renderer, scene, camera, { level: quality, capture, ao: { radius: aoRadius, distance: () => camera.position.distanceTo(controls.target) } });
 
   sunDir = sunDir.clone().normalize();
   const sky = new Sky(); sky.scale.setScalar(10000);

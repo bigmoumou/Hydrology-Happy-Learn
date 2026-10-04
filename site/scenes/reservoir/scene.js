@@ -6,7 +6,7 @@ import { createStage, strataMaterial, buildBlockFaces, arrowMesh, GLSL_NOISE } f
 import { mulberry32, createNoise2D, smoothstep, clamp, lerp } from '../lib/noise.js';
 import { sampleBilinear } from '../lib/grid.js';
 import { makeWaterNormal, makeDetailNormal } from '../lib/textures.js';
-import { coniferGeometry, broadleafGeometry, shrubGeometry, treeMaterial } from '../lib/trees.js';
+import { coniferGeometry, broadleafGeometry, shrubGeometry, treeMaterial, chunkedInstances, TreeLOD } from '../lib/trees.js';
 import { buildDamDetails } from './structures.js';
 
 export const RV_STEPS = [
@@ -330,8 +330,10 @@ export async function createReservoir(container, opts = {}) {
 
   // ---------- 樹 ----------
   const trees = [];
+  const treeLOD = new TreeLOD({ enabled: !opts.capture });
+  stage.onUpdate(() => treeLOD.update(stage.camera.position));
   {
-    const sp = { conA: { geo: coniferGeometry(11), list: [] }, brA: { geo: broadleafGeometry(5), list: [] }, brB: { geo: broadleafGeometry(17), list: [] }, shrub: { geo: shrubGeometry(7), list: [] } };
+    const sp = { conA: { geo: coniferGeometry(11), lo: coniferGeometry(11, 1), list: [] }, brA: { geo: broadleafGeometry(5), lo: broadleafGeometry(5, 1), list: [] }, brB: { geo: broadleafGeometry(17), lo: broadleafGeometry(17, 1), list: [] }, shrub: { geo: shrubGeometry(7), list: [] } };
     const maxN = { high: 5200, medium: 3200, low: 1800 }[quality];
     let count = 0;
     for (let t = 0; t < maxN * 8 && count < maxN; t++) {
@@ -355,15 +357,13 @@ export async function createReservoir(container, opts = {}) {
     const mtx = new THREE.Matrix4(), qq = new THREE.Quaternion(), e = new THREE.Euler(), cl = new THREE.Color();
     for (const s of Object.values(sp)) {
       if (!s.list.length) continue;
-      const mesh = new THREE.InstancedMesh(s.geo, mat, s.list.length);
-      s.list.forEach((t2, i) => {
+      const items = s.list.map((t2) => {
         e.set(0, t2.rot, 0); qq.setFromEuler(e);
         mtx.compose(new THREE.Vector3(t2.x, t2.y - 0.05, t2.z), qq, new THREE.Vector3(t2.s, t2.s, t2.s));
-        mesh.setMatrixAt(i, mtx); mesh.setColorAt(i, cl.setScalar(t2.tint));
         trees.push(t2);
+        return { x: t2.x, z: t2.z, matrix: mtx.clone(), color: cl.setScalar(t2.tint).clone() };
       });
-      mesh.castShadow = true; mesh.receiveShadow = true;
-      scene.add(mesh);
+      for (const mesh of chunkedInstances(s.geo, mat, items, 24, s.lo, treeLOD)) scene.add(mesh);
     }
   }
 

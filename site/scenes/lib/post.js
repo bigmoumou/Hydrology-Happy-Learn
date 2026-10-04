@@ -11,6 +11,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 // GTAO 只算不透明的網格。雨、雲、粒子、陰影接收面、背景球不參與，否則會在它們周圍畫出假的暗邊。
 // 物件可用 userData.noAO = true 排除；透明但要參與的（例如水面）用 userData.ao = true。
 class OpaqueGTAOPass extends GTAOPass {
+  // AO 是很柔的暗部：用半解析度算（法線深度圖、AO、降噪都減半），最後放大疊回全解析度畫面。片段運算約省 3/4。
+  setSize(w, h) { const k = this.resScale ?? 0.5; super.setSize(Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k))); }
+
   _overrideVisibility() {
     const cache = this._visibilityCache;
     this.scene.traverse((o) => {
@@ -32,7 +35,7 @@ export const LEVELS = [
 
 export function createPost(renderer, scene, camera, { level = 'high', capture = false, ao = {}, bloom = {} } = {}) {
   const T = {
-    aoRadius: 2.5, aoIntensity: 0.9, aoThickness: 1, aoFalloff: 1,
+    aoRadius: 2.5, aoIntensity: 0.9, aoThickness: 1, aoFalloff: 1, aoPerDist: 0.016, aoDistance: null,
     bloomStrength: 0.2, bloomRadius: 0.45, bloomThreshold: 2.6,
     ...Object.fromEntries(Object.entries(ao).map(([k, v]) => ['ao' + k[0].toUpperCase() + k.slice(1), v])),
     ...Object.fromEntries(Object.entries(bloom).map(([k, v]) => ['bloom' + k[0].toUpperCase() + k.slice(1), v])),
@@ -110,8 +113,17 @@ export function createPost(renderer, scene, camera, { level = 'high', capture = 
     if ((fps.slow >= 2 || fps.value < 15) && qi < LEVELS.length - 1) { fps.slow = 0; setLevel(LEVELS[qi + 1].name); }
   }
 
+  // AO 半徑跟著鏡頭遠近縮放：全景時大（看得出山谷、樹林的暗部），近拍時小（貼地的接觸陰影），
+  // 也避免近拍時取樣半徑在螢幕上變得很大、拖慢速度
+  function adaptAO() {
+    if (!gtao || !gtao.enabled || !T.aoDistance) return;
+    const r = Math.min(T.aoRadius, Math.max(T.aoRadius * 0.2, T.aoDistance() * T.aoPerDist));
+    gtao.gtaoMaterial.uniforms.radius.value = r;
+  }
+
   function render() {
     renderer.info.reset();
+    adaptAO();
     if (shadowFrames > 0) { renderer.shadowMap.needsUpdate = true; shadowFrames--; }
     if (L().post && composer) composer.render();
     else { renderer.setRenderTarget(null); renderer.render(scene, camera); }

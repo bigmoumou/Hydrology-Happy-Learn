@@ -17,8 +17,8 @@ function finalize(g, colorFn) {
   return g;
 }
 
-function trunk(r0, r1, h, color, bend = 0) {
-  const g = new THREE.CylinderGeometry(r1, r0, h, 7, 4, true);
+function trunk(r0, r1, h, color, bend = 0, lod = 0) {
+  const g = lod ? new THREE.CylinderGeometry(r1, r0, h, 5, 1, true) : new THREE.CylinderGeometry(r1, r0, h, 7, 4, true);
   g.translate(0, h / 2, 0);
   if (bend) {
     const p = g.attributes.position;
@@ -30,10 +30,11 @@ function trunk(r0, r1, h, color, bend = 0) {
 }
 
 // 針葉樹：一層層有鋸齒邊緣、下垂的枝層
-export function coniferGeometry(seed = 1) {
+// lod = 1：遠景用的簡化版（同樣的輪廓與配色，面數約 4 成）
+export function coniferGeometry(seed = 1, lod = 0) {
   const rand = mulberry32(seed);
-  const parts = [trunk(0.07, 0.03, 1.55, 0x4a3828)];
-  const layers = 9, seg = 11;
+  const parts = [trunk(0.07, 0.03, 1.55, 0x4a3828, 0, lod)];
+  const layers = lod ? 6 : 9, seg = lod ? 7 : 11;
   const dark = C(0x1f3a1e), mid = C(0x2c4f27), tip = C(0x46703a);
   for (let l = 0; l < layers; l++) {
     const t = l / (layers - 1);
@@ -70,29 +71,31 @@ export function coniferGeometry(seed = 1) {
 }
 
 // 闊葉樹：主幹分叉＋5–7 團凹凸的樹冠
-export function broadleafGeometry(seed = 2) {
+export function broadleafGeometry(seed = 2, lod = 0) {
   const rand = mulberry32(seed);
-  const parts = [trunk(0.075, 0.045, 0.85, 0x4b3a2b)];
+  const parts = [trunk(0.075, 0.045, 0.85, 0x4b3a2b, 0, lod)];
   for (let b = 0; b < 3; b++) {
     const g = new THREE.CylinderGeometry(0.02, 0.035, 0.5, 5, 1, true);
     g.translate(0, 0.25, 0);
     g.rotateZ((rand() - 0.5) * 1.2); g.rotateY(rand() * Math.PI * 2);
     g.translate(0, 0.62, 0);
-    parts.push(finalize(g, (x, y, z, c) => c.set(0x4b3a2b)));
+    if (!lod) parts.push(finalize(g, (x, y, z, c) => c.set(0x4b3a2b)));
   }
   const crownC = [0, 1.05, 0];
   const n = 8 + Math.floor(rand() * 4);
   const dark = C(0x1c3516), mid = C(0x2f5424), lite = C(0x587a34);
+  const blobs = [];
   for (let k = 0; k < n; k++) {
     const a = rand() * Math.PI * 2, rr = k === 0 ? 0 : 0.2 + rand() * 0.22;
-    const cx = Math.cos(a) * rr, cz = Math.sin(a) * rr, cy = crownC[1] + (k === 0 ? 0.12 : (rand() - 0.4) * 0.28);
-    const R = (k === 0 ? 0.34 : 0.17 + rand() * 0.12);
-    const g = new THREE.SphereGeometry(R, 8, 6);
+    blobs.push({ cx: Math.cos(a) * rr, cz: Math.sin(a) * rr, cy: crownC[1] + (k === 0 ? 0.12 : (rand() - 0.4) * 0.28), R: k === 0 ? 0.34 : 0.17 + rand() * 0.12, ph: rand() * 10 });
+  }
+  for (const [k, { cx, cy, cz, R, ph }] of blobs.entries()) {
+    const jit = mulberry32(seed * 131 + k);
+    const g = lod ? new THREE.SphereGeometry(R, 5, 4) : new THREE.SphereGeometry(R, 8, 6);
     const p = g.attributes.position;
-    const ph = rand() * 10;
     for (let v = 0; v < p.count; v++) {
       const x = p.getX(v), y = p.getY(v), z = p.getZ(v);
-      const lump = 1 + 0.16 * Math.sin(x * 13 + ph) * Math.sin(y * 11 + ph * 0.7) * Math.sin(z * 12 + ph * 1.3) + (rand() - 0.5) * 0.08;
+      const lump = 1 + 0.16 * Math.sin(x * 13 + ph) * Math.sin(y * 11 + ph * 0.7) * Math.sin(z * 12 + ph * 1.3) + (jit() - 0.5) * 0.08;
       p.setXYZ(v, cx + x * lump, cy + y * lump * 0.82, cz + z * lump);
     }
     g.computeVertexNormals();
@@ -161,6 +164,49 @@ export function shrubGeometry(seed = 4) {
     parts.push(finalize(g, (x, y, z, c) => c.copy(dark).lerp(lite, Math.min(1, y / (R * 1.6)))));
   }
   return mergeGeometries(parts);
+}
+
+// 分地塊的實例：同一種樹依位置分到 size × size 的地塊，每塊一個 InstancedMesh（各有自己的包圍球）。
+// 鏡頭拉近時，畫面外的地塊整塊被視錐剔除，主畫面和 GTAO 的法線圖都少畫很多樹。
+// items：[{ x, z, matrix, color }]
+// lodGeo：遠景用的簡化模型；有給的話每個地塊多一個遠景網格，由 TreeLOD 依鏡頭距離切換。
+export function chunkedInstances(geo, mat, items, size = 24, lodGeo = null, lod = null) {
+  const groups = new Map();
+  for (const it of items) {
+    const key = `${Math.floor(it.x / size)},${Math.floor(it.z / size)}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(it);
+  }
+  const make = (g, list) => {
+    const m = new THREE.InstancedMesh(g, mat, list.length);
+    list.forEach((it, i) => { m.setMatrixAt(i, it.matrix); m.setColorAt(i, it.color); });
+    m.instanceMatrix.needsUpdate = true;
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    m.computeBoundingSphere();
+    m.castShadow = true; m.receiveShadow = true;
+    return m;
+  };
+  const meshes = [];
+  for (const list of groups.values()) {
+    const hi = make(geo, list);
+    meshes.push(hi);
+    if (lodGeo && lod?.enabled) { const lo = make(lodGeo, list); meshes.push(lo); lod.add(hi, lo); }
+  }
+  return meshes;
+}
+
+// 遠近切換：地塊離鏡頭超過 far 用簡化模型，回到 near 以內換回完整模型（中間留一段避免來回跳）。
+// 做影片時關掉（enabled = false），逐格渲染不在乎速度，也不會有切換的跳動。
+export class TreeLOD {
+  constructor({ near = 68, far = 80, enabled = true } = {}) { Object.assign(this, { near, far, enabled, chunks: [] }); }
+  add(hi, lo) { lo.visible = false; this.chunks.push({ hi, lo, low: false }); }
+  update(cam) {
+    for (const c of this.chunks) {
+      const s = c.hi.boundingSphere, d = cam.distanceTo(s.center) - s.radius;
+      if (!c.low && d > this.far) { c.low = true; c.hi.visible = false; c.lo.visible = true; }
+      else if (c.low && d < this.near) { c.low = false; c.hi.visible = true; c.lo.visible = false; }
+    }
+  }
 }
 
 // 樹的材質：微風擺動（越高擺越多）＋逆光時葉子透光
