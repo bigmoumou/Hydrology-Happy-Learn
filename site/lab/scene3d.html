@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3D 場景檢視</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../assets/base.css">
+  <link rel="stylesheet" href="../assets/deck.css">
+  <style>html,body{height:100%;overflow:hidden} #stage{position:fixed;inset:0}</style>
+  <script type="importmap">
+    { "imports": { "three": "../vendor/three/build/three.module.js", "three/addons/": "../vendor/three/jsm/" } }
+  </script>
+</head>
+<body>
+  <!-- 開發用：單獨檢視一個 3D 場景。?s=hydro|rv|tw&step=<步驟 id>&labels=0
+       提供 window.__app（3d-model skill 的截圖介面）：views、setView、pause、step、quality、stats -->
+  <div class="deck" style="--s:0.85"><div id="stage" class="deck__bg"></div></div>
+  <script type="module">
+    const p = new URLSearchParams(location.search);
+    const s = p.get('s') || 'hydro';
+    const el = document.getElementById('stage');
+    let api;
+    if (s === 'rv') api = await (await import('../scenes/reservoir/scene.js')).createReservoir(el, {});
+    else if (s === 'tw') api = await (await import('../scenes/taiwan/scene.js')).createTaiwan(el, { base: '../data/' });
+    else api = await (await import('../scenes/hydro-cycle/scene.js')).createHydroCycle(el, {});
+    if (p.get('labels') === '0') api.setLabels(false);
+    if (p.get('step')) api.setStepById(p.get('step'), { instant: true });
+    window.api = api;
+    let t = api.time || 0;
+    window.__app = {
+      views: api.steps.map((st) => st.id),
+      setView(name, instant = true) { api.setStepById(name, { instant }); return true; },
+      pause(on = true) { api.setActive(!on); },
+      step(ms = 1000 / 60) { t += ms / 1000; api.render(t); },
+      quality(name) { return api.setQuality ? api.setQuality(name) : name; },
+      set(o) { return api.set ? api.set(o) : null; },
+      get() { return { step: api.steps[api.step].id, t }; },
+      stats() {
+        const i = api.renderer.info;
+        return { level: (api.post && api.post.level) || api.qualityLevel || 'n/a', pixelRatio: api.renderer.getPixelRatio(), calls: i.render.calls, triangles: i.render.triangles, geometries: i.memory.geometries, textures: i.memory.textures, fps: api.fps || 0 };
+      },
+    };
+    requestAnimationFrame(() => requestAnimationFrame(() => { window.__ready = true; }));
+  </script>
+</body>
+</html>

@@ -157,10 +157,13 @@ export function buildS1(seed = 7, onProgress = () => {}) {
       rim = Math.min(rim, sampleBilinear(h, nx, nz, (px + Math.cos(ang) * R * 1.3 - x0) / dx, (pz + Math.sin(ang) * R * 1.3 - z0) / dx));
     }
     const level = rim - 0.07;
+    const ph1 = px * 0.7, ph2 = pz * 0.5;
+    const Ra = (ang) => R * (1 + 0.16 * Math.sin(3 * ang + ph1) + 0.08 * Math.sin(5 * ang + ph2) + 0.05 * Math.sin(8 * ang + ph1 * 1.7));
     const i0 = Math.floor((px - R * 1.6 - x0) / dx), i1 = Math.ceil((px + R * 1.6 - x0) / dx);
     const j0 = Math.floor((pz - R * 1.6 - z0) / dx), j1 = Math.ceil((pz + R * 1.6 - z0) / dx);
     for (let j = Math.max(0, j0); j <= Math.min(nz - 1, j1); j++) for (let i = Math.max(0, i0); i <= Math.min(nx - 1, i1); i++) {
-      const d = Math.hypot(X(i) - px, Z(j) - pz);
+      const d0 = Math.hypot(X(i) - px, Z(j) - pz);
+      const d = d0 * R / Ra(Math.atan2(Z(j) - pz, X(i) - px));
       const k = j * nx + i;
       if (d < R) {
         h[k] = Math.min(h[k], level - 0.3 * (1 - (d / R) ** 2));

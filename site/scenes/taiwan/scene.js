@@ -2,7 +2,7 @@
 // 1 單位 = 1 km，島中心在原點；高程乘上垂直誇大
 // 模式：'relief' 一般地形色、'bands' 三種地形分區（>1000、100–1000、<100 m）、'lumped' 集塊、'grid' 分佈（網格）
 import * as THREE from 'three';
-import { createStage, GLSL_NOISE } from '../lib/stage.js';
+import { createStage, GLSL_NOISE, addPlinth } from '../lib/stage.js';
 import { makeWaterNormal } from '../lib/textures.js';
 
 export const TW_STEPS = [
@@ -128,8 +128,8 @@ export async function createTaiwan(container, { base = '../../data/', exaggerati
   }
   buildSkirt();
   scene.add(skirt);
-  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.ShadowMaterial({ opacity: 0.14 }));
-  catcher.rotation.x = -Math.PI / 2; catcher.position.y = B - 0.1; catcher.receiveShadow = true; scene.add(catcher);
+  // 展示底座（木座）＋地面陰影：整塊地形像博物館裡的立體地圖模型
+  addPlinth(scene, { x0: ox, x1: ox + sizeX, z0: oz, z1: oz + sizeZ, bottom: B, margin: 7, height: 9 });
 
   // 海面
   const wn = makeWaterNormal(); wn.repeat.set(24, 40);
@@ -187,14 +187,15 @@ export async function createTaiwan(container, { base = '../../data/', exaggerati
   // 慢速旋轉的展示模式（封面用）
   onProgress('完成', 1);
   stage.start();
-  return {
-    ...stage, meta, toXZ, sizeX, sizeZ,
+  // 用原型繼承 stage（不用 ...stage 展開）：time、step 這些 getter 才會一直是最新值
+  return Object.assign(Object.create(stage), {
+    meta, toXZ, sizeX, sizeZ,
     setMode,
     setTropic(on) { trop.visible = on; },
     setExaggeration(v) {
-      ex = v; updateNormals(ex); buildSkirt();
+      ex = v; updateNormals(ex); buildSkirt(); stage.post.invalidateShadows();
       for (const l of Object.values(labels)) if (l.lonlat) { const [x, z] = toXZ(l.lonlat[0], l.lonlat[1]); l.obj.position.y = yAt(x, z) + l.lonlat[2]; }
     },
     setLabels(on) { stage.state.labels = on; updateLabels(); },
-  };
+  });
 }

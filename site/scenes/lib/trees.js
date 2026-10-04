@@ -87,7 +87,7 @@ export function broadleafGeometry(seed = 2) {
     const a = rand() * Math.PI * 2, rr = k === 0 ? 0 : 0.2 + rand() * 0.22;
     const cx = Math.cos(a) * rr, cz = Math.sin(a) * rr, cy = crownC[1] + (k === 0 ? 0.12 : (rand() - 0.4) * 0.28);
     const R = (k === 0 ? 0.34 : 0.17 + rand() * 0.12);
-    const g = new THREE.SphereGeometry(R, 9, 7);
+    const g = new THREE.SphereGeometry(R, 8, 6);
     const p = g.attributes.position;
     const ph = rand() * 10;
     for (let v = 0; v < p.count; v++) {
@@ -211,7 +211,7 @@ export function treeMaterial({ time, sunDir, wind = 0.035, translucency = 0.5, s
           vec3 cell = floor(vTreeWP * 5.0);
           float r = tHash(cell);
           float tw = 0.55 + 0.45 * sin(uTime * 4.0 + r * 40.0);
-          float drop = step(0.86, r) * tw;
+          float drop = step(0.86, r) * tw * smoothstep(0.5, 0.95, uWet);
           vec3 f = fract(vTreeWP * 5.0) - 0.5;
           float d = length(f);
           float core = 1.0 - smoothstep(0.05, 0.16, d);

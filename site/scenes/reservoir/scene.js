@@ -7,13 +7,14 @@ import { mulberry32, createNoise2D, smoothstep, clamp, lerp } from '../lib/noise
 import { sampleBilinear } from '../lib/grid.js';
 import { makeWaterNormal, makeDetailNormal } from '../lib/textures.js';
 import { coniferGeometry, broadleafGeometry, shrubGeometry, treeMaterial } from '../lib/trees.js';
+import { buildDamDetails } from './structures.js';
 
 export const RV_STEPS = [
   { id: 'rv-overview', cam: [[-36, 62, 76], [-6, 3, -16]] },
   { id: 'rv-system', cam: [[-30, 66, 84], [-4, 3, -16]] },
   { id: 'rv-section', cam: [[-10, 20, 62], [-10, 6, 0]] },
   { id: 'rv-area', cam: [[-24, 46, 52], [-14, 8, -14]] },
-  { id: 'rv-dam', cam: [[42, 30, 18], [16, 7, -7]] },
+  { id: 'rv-dam', cam: [[50, 31, 22], [19, 9, -3]] },
   { id: 'rv-lab', cam: [[-30, 64, 92], [-2, 2, -16]] },
 ];
 
@@ -61,7 +62,7 @@ export async function createReservoir(container, opts = {}) {
   const pos = new Float32Array(N * 3), nor = new Float32Array(N * 3), col = new Float32Array(N * 3), uvs = new Float32Array(N * 2);
   const c = new THREE.Color(), c2 = new THREE.Color();
   const P = (hex) => new THREE.Color(hex);
-  const pal = { grassA: P(0x86a250), grassB: P(0x6e8d41), forestA: P(0x4b6a31), forestB: P(0x3a5426), rock: P(0x8d8579), rockD: P(0x645e55), gravel: P(0xb6ac96) };
+  const pal = { grassA: P(0x86a250), grassB: P(0x6e8d41), forestA: P(0x4b6a31), forestB: P(0x3a5426), rock: P(0x7a7266), rockD: P(0x575047), gravel: P(0xb6ac96) };
   const slopeArr = new Float32Array(N);
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
     const k = j * nx + i, x = X(i), z = Z(j), y = h[k];
@@ -95,18 +96,26 @@ export async function createReservoir(container, opts = {}) {
   const terrainMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94, normalMap: makeDetailNormal(), normalScale: new THREE.Vector2(0.5, 0.5) });
   terrainMat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, { uLevel: U.uLevel, uCrest: U.uCrest, uDamX: U.uDamX });
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWP = (modelMatrix * vec4(position, 1.0)).xyz;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec3 vWP;\nuniform float uLevel, uCrest, uDamX;\n${GLSL_NOISE}`)
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP;\nvarying vec3 vWN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWP = (modelMatrix * vec4(position, 1.0)).xyz;\nvWN = normalize(mat3(modelMatrix) * objectNormal);');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec3 vWP;\nvarying vec3 vWN;\nuniform float uLevel, uCrest, uDamX;\n${GLSL_NOISE}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
           float mn = vnoise(vWP.xz * 1.6) * 0.6 + vnoise(vWP.xz * 5.3) * 0.4;
           diffuseColor.rgb *= 0.88 + 0.24 * mn;
+          float steep = 1.0 - smoothstep(0.6, 0.8, vWN.y);
+          if (steep > 0.01) {
+            vec2 dn = normalize(vWN.xz + 1e-4);
+            float across = dot(vWP.xz, vec2(-dn.y, dn.x));
+            float streak = vnoise(vec2(across * 2.2, vWP.y * 0.35)) * 0.65 + vnoise(vec2(across * 7.0, vWP.y * 0.9)) * 0.35;
+            float crack = smoothstep(0.62, 0.8, vnoise(vec2(across * 1.3, vWP.y * 2.4)));
+            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * (0.74 + 0.4 * streak) * (1.0 - 0.32 * crack), steep);
+          }
           if (vWP.x < uDamX + 0.2) {
             // 消落帶（水位變動區）：裸露的淺色土石；剛退水的地方較暗較濕
             float ring = smoothstep(uLevel - 0.02, uLevel + 0.05, vWP.y) * (1.0 - smoothstep(uCrest + 0.1, uCrest + 0.6, vWP.y));
-            vec3 bare = mix(vec3(0.24, 0.2, 0.15), vec3(0.17, 0.145, 0.11), vnoise(vWP.xz * 2.2));
-            bare *= 0.9 + 0.1 * smoothstep(-0.3, 0.3, sin(vWP.y * 18.0 + vnoise(vWP.xz) * 3.0));
+            vec3 bare = mix(vec3(0.19, 0.15, 0.105), vec3(0.13, 0.105, 0.075), vnoise(vWP.xz * 2.2));
+            bare *= 0.93 + 0.07 * smoothstep(-0.3, 0.3, sin(vWP.y * 18.0 + vnoise(vWP.xz) * 3.0));
             float wet = 1.0 - smoothstep(0.0, 0.5, vWP.y - uLevel);
             bare = mix(bare, bare * vec3(0.62, 0.6, 0.56), wet);
             diffuseColor.rgb = mix(diffuseColor.rgb, bare, ring);
@@ -216,7 +225,7 @@ export async function createReservoir(container, opts = {}) {
   }
 
   // ---------- 大壩（重力壩，前端切開看得到斷面）----------
-  const spZ0 = -9.5, spZ1 = -5.5; // 溢洪道寬度範圍（z）
+  const spZ0 = -4.3, spZ1 = -1.7; // 溢洪道寬度範圍（z）：峽谷中段，壩面露出來的地方
   const damMat = new THREE.MeshStandardMaterial({ color: 0x9f9a90, roughness: 0.88, metalness: 0 });
   damMat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, { uLevel: U.uLevel });
@@ -234,6 +243,7 @@ export async function createReservoir(container, opts = {}) {
           diffuseColor.rgb = cc;
         }`);
   };
+  let damZEnd = z1;
   {
     const zs = [];
     let zEnd = z1;
@@ -253,6 +263,7 @@ export async function createReservoir(container, opts = {}) {
         faces[f].push(a0[0], a0[1], za, b0[0], b0[1], zb, a1[0], a1[1], za, a1[0], a1[1], za, b0[0], b0[1], zb, b1[0], b1[1], zb);
       }
     }
+    damZEnd = zEnd;
     const geos = faces.map((arr) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); g.computeVertexNormals(); return g; });
     // 前端斷面
     const pf = prof(z1 - 0.01);
@@ -277,13 +288,10 @@ export async function createReservoir(container, opts = {}) {
     scene.add(capMesh);
     // 溢洪道閘墩
     for (let pz = spZ0; pz <= spZ1 + 1e-6; pz += (spZ1 - spZ0) / 3) { const pier = new THREE.BoxGeometry(1.4, crest - spill + 0.3, 0.3); pier.translate(damX + 0.7, (crest + spill) / 2, pz); geos.push(pier.toNonIndexed()); }
-    const deck = new THREE.BoxGeometry(1.0, 0.3, spZ1 - spZ0 + 0.3); deck.translate(damX + 0.5, crest + 0.05, (spZ0 + spZ1) / 2); geos.push(deck.toNonIndexed());
+    const deck = new THREE.BoxGeometry(1.0, 0.3, spZ1 - spZ0 + 0.3); deck.translate(damX + 0.5, crest - 0.12, (spZ0 + spZ1) / 2); geos.push(deck.toNonIndexed());
     const dam = new THREE.Mesh(mergeGeometries(geos.map((g) => { g.deleteAttribute('uv'); return g; })), damMat);
     dam.castShadow = true; dam.receiveShadow = true;
     scene.add(dam);
-    // 壩頂護欄
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.45, z1 - zEnd), new THREE.MeshStandardMaterial({ color: 0x8f8a80, roughness: 0.6 }));
-    rail.position.set(damX + 1.32, crest + 0.22, (z1 + zEnd) / 2); scene.add(rail);
   }
 
   // 溢洪道水流（水位高過溢洪道頂才有）
@@ -292,10 +300,14 @@ export async function createReservoir(container, opts = {}) {
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
     fragmentShader: `uniform float uTime, uSpill; varying vec2 vUv; ${GLSL_NOISE}
       void main(){ if (uSpill < 0.01) discard;
-        vec2 p = vec2(vUv.x * 6.0, vUv.y * 9.0 + uTime * 6.0);
-        float n = vnoise(p) * 0.6 + vnoise(p * 2.7) * 0.4;
-        vec3 col = mix(vec3(0.55, 0.75, 0.78), vec3(0.97), smoothstep(0.3, 0.75, n) * (0.4 + 0.6 * vUv.y));
-        gl_FragColor = vec4(col, uSpill * (0.55 + 0.4 * n));
+        // 溢流：順著陡槽拉長的白水條紋，越往下摻氣越多、越白
+        float down = 1.0 - vUv.y;
+        vec2 p = vec2(vUv.x * 16.0, vUv.y * 2.2 + uTime * 2.6);
+        float n = vnoise(p) * 0.55 + vnoise(p * vec2(2.3, 3.1)) * 0.3 + vnoise(p * vec2(5.0, 7.0)) * 0.15;
+        float aer = smoothstep(0.0, 0.6, down);
+        vec3 col = mix(vec3(0.42, 0.62, 0.66), vec3(0.95, 0.97, 0.97), clamp(smoothstep(0.35, 0.7, n) * (0.35 + 0.65 * aer) + aer * 0.35, 0.0, 1.0));
+        float edge = smoothstep(0.0, 0.06, vUv.x) * smoothstep(1.0, 0.94, vUv.x);
+        gl_FragColor = vec4(col, clamp(uSpill * 2.2, 0.0, 1.0) * (0.7 + 0.3 * n) * edge);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
@@ -312,6 +324,10 @@ export async function createReservoir(container, opts = {}) {
     scene.add(m);
   }
 
+  // 壩頂道路、護欄、路燈、取水塔、壓力鋼管、發電廠、溢洪道導牆、小車、小船
+  const details = buildDamDetails(scene, { H, damX, crest, spill, spZ0, spZ1, zEnd: damZEnd, z1, thalAt, U, floorDam: T.floorDam });
+  stage.onUpdate((t) => details.update(t));
+
   // ---------- 樹 ----------
   const trees = [];
   {
@@ -326,6 +342,7 @@ export async function createReservoir(container, opts = {}) {
       if (x < damX + 3 && y < crest + 0.8) continue;
       if (x >= damX + 3 && (Math.abs(z) < 5 || y < thalAt(x) + 1.2)) continue;
       if (Math.abs(x - damX - 4) < 9 && z > -18) continue;
+      if (x > damX && x < damX + 20 && z > -7) continue;   // 發電廠一帶
       if (slopeArr[k] > 0.48) continue;
       const dens = 0.55 + 0.45 * smoothstep(-0.3, 0.4, nn(x * 0.05, z * 0.05)) - smoothstep(26, 31, y);
       if (rand() > dens) continue;
@@ -361,8 +378,8 @@ export async function createReservoir(container, opts = {}) {
     inflow: stage.label('入流 I', 'inflow', [-54, thalAt(-54) + 6.2, -1.2]),
     outflow: stage.label('出流 O', 'outflow', [damX + 20, thalAt(damX + 20) + 6.2, -1.2]),
     storage: stage.label('蓄水量 S', 'storage', [-20, 12, -10]),
-    dam: stage.label('大壩', 'dam', [damX + 0.7, crest + 0.9, -2.5]),
-    spill: stage.label('溢洪道', 'spillway', [damX + 3, crest + 1.6, (spZ0 + spZ1) / 2]),
+    dam: stage.label('大壩', 'dam', [damX + 0.7, crest + 0.9, -5.6]),
+    spill: stage.label('溢洪道', 'spillway', [damX + 4.6, spill - 2.6, (spZ0 + spZ1) / 2]),
   };
   const showArrows = { value: true };
 
@@ -384,6 +401,7 @@ export async function createReservoir(container, opts = {}) {
     const xI = -57, lvI = Math.max(L, thalAt(xI) + U.uDI.value);
     arrI.position.set(xI - 2, lvI + 2.6, -1.2); labels.inflow.obj.position.set(xI + 2, lvI + 5.4, -1.2);
     labels.storage.obj.position.y = L + 1.0;
+    details.setLevel(L);
   }
   apply();
 
@@ -401,9 +419,9 @@ export async function createReservoir(container, opts = {}) {
 
   onProgress('完成', 1);
   stage.start();
-  return {
-    ...stage,
-    curve, crest, spill, damX, floorDam: T.floorDam, lowLevel: 8.5,
+  // 用原型繼承 stage（不用 ...stage 展開）：time、step 這些 getter 才會一直是最新值
+  return Object.assign(Object.create(stage), {
+    curve, crest, spill, damX, floorDam: T.floorDam, lowLevel: 8.5, terrain: T,
     storeFromLevel: (L) => interp(levels, stores, L),
     levelFromStore: (S) => interp(stores, levels, S),
     areaAt: (L) => interp(levels, areas, L),
@@ -413,5 +431,5 @@ export async function createReservoir(container, opts = {}) {
     setRate(r) { dSdt = r; apply(); },
     setArrows(on) { showArrows.value = on; apply(); },
     setLabels(on) { stage.state.labels = on; updateLabels(); },
-  };
+  });
 }

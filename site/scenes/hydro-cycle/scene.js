@@ -12,6 +12,9 @@ import { makeWaterNormal, makeDetailNormal, makePuffTexture } from '../lib/textu
 import { FlowSystem, chaikin } from '../lib/flows.js';
 import { coniferGeometry, broadleafGeometry, palmGeometry, shrubGeometry, treeMaterial, wetUniform } from '../lib/trees.js';
 import { STEPS } from './steps.js';
+import { createPost } from '../lib/post.js';
+import { GLSL_FACE, faceIndex, addPlinth } from '../lib/stage.js';
+import { planVillage, buildVillage } from './village.js';
 
 const GLSL_NOISE = /* glsl */`
   float hash12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
@@ -38,7 +41,6 @@ export async function createHydroCycle(container, opts = {}) {
 
   // ---------- 渲染器 ----------
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: capture });
-  renderer.setPixelRatio(capture ? window.devicePixelRatio : Math.min(window.devicePixelRatio, quality === 'high' ? 2 : 1));
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true;
@@ -61,6 +63,8 @@ export async function createHydroCycle(container, opts = {}) {
   controls.maxDistance = 260;
   controls.maxPolarAngle = Math.PI * 0.495;
   controls.update();
+  // 後製（GTAO 接觸陰影、bloom）與畫質分級；像素比例也由它管
+  const post = createPost(renderer, scene, camera, { level: quality, capture, ao: { radius: 2.4 } });
 
   // ---------- 光與環境 ----------
   const sunDir = new THREE.Vector3(-0.52, 0.66, 0.54).normalize();
@@ -101,6 +105,7 @@ export async function createHydroCycle(container, opts = {}) {
   });
   const bg = new THREE.Mesh(new THREE.SphereGeometry(1500, 32, 16), bgMat);
   bg.renderOrder = -10;
+  bg.userData.noAO = true;
   scene.add(bg);
 
   // ---------- 地形資料 ----------
@@ -124,7 +129,7 @@ export async function createHydroCycle(container, opts = {}) {
   const tPos = new Float32Array(N * 3), tNor = new Float32Array(N * 3), tCol = new Float32Array(N * 3), tUv = new Float32Array(N * 2), tPaddy = new Float32Array(N);
   const pal = Object.fromEntries(Object.entries({
     sand: 0xd8c7a0, wetSand: 0xb59f79, grassA: 0x86a250, grassB: 0x6e8d41, forestA: 0x4b6a31, forestB: 0x3a5426,
-    alpine: 0x8b9068, rock: 0x8d8579, rockDark: 0x645e55, gravel: 0xbdb39e, gravelB: 0xa1977f, wet: 0x55704f,
+    alpine: 0x8b9068, rock: 0x7a7266, rockDark: 0x575047, gravel: 0xbdb39e, gravelB: 0xa1977f, wet: 0x55704f,
     seabedS: 0xcdb98e, seabedD: 0x6a6150, bank: 0x9a8d6e,
   }).map(([k, v]) => [k, new THREE.Color(v)]));
   const c = new THREE.Color(), c2 = new THREE.Color();
@@ -188,6 +193,22 @@ export async function createHydroCycle(container, opts = {}) {
         tPaddy[j * nx + i] *= smoothstep(p.r * 1.4, r, d);
       }
   }
+  // 窪地：水下是深色淤泥，水邊一圈濕土
+  for (const p of ponds) {
+    const r = p.r * 1.7;
+    for (let j = Math.max(0, Math.floor((p.z - r - z0) / dx)); j <= Math.min(nz - 1, Math.ceil((p.z + r - z0) / dx)); j++)
+      for (let i = Math.max(0, Math.floor((p.x - r - x0) / dx)); i <= Math.min(nx - 1, Math.ceil((p.x + r - x0) / dx)); i++) {
+        const k = j * nx + i, below = p.level - h[k];
+        if (below < -0.22) continue;
+        const mud = smoothstep(-0.22, -0.02, below), deep = smoothstep(0.0, 0.18, below);
+        const n = 0.85 + 0.3 * (0.5 + 0.5 * nz2(X(i) * 0.9, Z(j) * 0.9));
+        c.setRGB(tCol[k * 3], tCol[k * 3 + 1], tCol[k * 3 + 2]);
+        c.lerp(c2.setRGB(0.2 * n, 0.19 * n, 0.13 * n), mud * 0.65).lerp(c2.setRGB(0.13, 0.12, 0.085), deep * 0.8);
+        tCol[k * 3] = c.r; tCol[k * 3 + 1] = c.g; tCol[k * 3 + 2] = c.b;
+      }
+  }
+  // 聚落（公路、橋、房子）：先規劃，順便改地表顏色、清掉路和房子底下的水田
+  const village = planVillage(T, { H, slopeAt: (k) => 1 - tNor[k * 3 + 1], paddy: tPaddy, tCol, riverHalf: riverWAt(sMouth) });
   const idx = new Uint32Array((nx - 1) * (nz - 1) * 6);
   let q = 0;
   for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
@@ -208,15 +229,25 @@ export async function createHydroCycle(container, opts = {}) {
   });
   terrainMat.onBeforeCompile = (sh) => {
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute float aPaddy;\nvarying float vPaddy;\nvarying vec3 vWPos;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPaddy = aPaddy;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;');
+      .replace('#include <common>', '#include <common>\nattribute float aPaddy;\nvarying float vPaddy;\nvarying vec3 vWPos;\nvarying vec3 vWN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPaddy = aPaddy;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWN = normalize(mat3(modelMatrix) * objectNormal);');
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vPaddy;\nvarying vec3 vWPos;\n' + GLSL_NOISE)
+      .replace('#include <common>', '#include <common>\nvarying float vPaddy;\nvarying vec3 vWPos;\nvarying vec3 vWN;\n' + GLSL_NOISE)
       .replace('#include <color_fragment>', `#include <color_fragment>
         float pWater = 0.0;
         {
           float mn = vnoise(vWPos.xz * 1.6) * 0.6 + vnoise(vWPos.xz * 5.3) * 0.4;
           diffuseColor.rgb *= 0.88 + 0.24 * mn;
+          // 陡坡岩壁：順坡向下的雨痕條紋、裂隙暗紋，避免一整片灰
+          float steep = 1.0 - smoothstep(0.6, 0.8, vWN.y);
+          if (steep > 0.01) {
+            vec2 dn = normalize(vWN.xz + 1e-4);
+            float across = dot(vWPos.xz, vec2(-dn.y, dn.x));
+            float streak = vnoise(vec2(across * 2.2, vWPos.y * 0.35)) * 0.65 + vnoise(vec2(across * 7.0, vWPos.y * 0.9)) * 0.35;
+            float crack = smoothstep(0.62, 0.8, vnoise(vec2(across * 1.3, vWPos.y * 2.4)));
+            vec3 rk = diffuseColor.rgb * (0.74 + 0.4 * streak) * (1.0 - 0.32 * crack);
+            diffuseColor.rgb = mix(diffuseColor.rgb, rk, steep);
+          }
           if (vPaddy > 0.01) {
             float ca = 0.35; float sa = sin(ca), co = cos(ca);
             vec2 q = vec2(vWPos.x * co + vWPos.z * sa, -vWPos.x * sa + vWPos.z * co);
@@ -244,10 +275,11 @@ export async function createHydroCycle(container, opts = {}) {
   const strataMat = new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
     uniforms: { uBottom: { value: bottom }, uTime: timeUniform, uGwHi: { value: 0 }, uUnsat: { value: 0 }, uFocusX: { value: -16 }, uLight: { value: 1.0 } },
-    vertexShader: `attribute float aSurf, aGwt, aSoil, aU; varying float vSurf, vGwt, vSoil, vU; varying vec3 vPos;
-      void main(){ vSurf = aSurf; vGwt = aGwt; vSoil = aSoil; vU = aU; vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-    fragmentShader: `uniform float uBottom, uTime, uGwHi, uUnsat, uFocusX, uLight; varying float vSurf, vGwt, vSoil, vU; varying vec3 vPos;
+    vertexShader: `attribute float aSurf, aGwt, aSoil, aU; varying float vSurf, vGwt, vSoil, vU; varying vec3 vPos, vN;
+      void main(){ vSurf = aSurf; vGwt = aGwt; vSoil = aSoil; vU = aU; vPos = position; vN = normal; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform float uBottom, uTime, uGwHi, uUnsat, uFocusX, uLight; varying float vSurf, vGwt, vSoil, vU; varying vec3 vPos, vN;
       ${GLSL_NOISE}
+      ${GLSL_FACE}
       vec2 hash22(vec2 p){ p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))); return fract(sin(p) * 43758.5453); }
       // 細胞雜訊：回傳 (到最近點的距離, 該格亂數)，用來畫礫石
       vec2 cellN(vec2 p){ vec2 i = floor(p), f = fract(p); float md = 8.0, id = 0.0;
@@ -319,6 +351,7 @@ export async function createHydroCycle(container, opts = {}) {
         col += vec3(0.10, 0.45, 1.0) * wl * uUnsat * 0.6 * step(0.0, depth - 0.05);
         col *= mix(0.8, 1.0, smoothstep(uBottom, uBottom + 10.0, y));
         col = mix(col, col * 1.45, 1.0 - smoothstep(0.0, 0.06, depth));
+        col *= faceLight(vN, depth, y - uBottom);
         gl_FragColor = vec4(col * uLight, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -362,8 +395,7 @@ export async function createHydroCycle(container, opts = {}) {
       uu[c2i * 2] = uu[c2i * 2 + 1] = u;
       wPos.push([x, z, top]);
     });
-    const ind = [];
-    for (let c2i = 0; c2i < n - 1; c2i++) { const a = c2i * 2; ind.push(a, a + 1, a + 2, a + 2, a + 1, a + 3); }
+    const ind = faceIndex(n, side === 'back' || side === 'right');
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('aSurf', new THREE.BufferAttribute(surf, 1));
@@ -371,6 +403,7 @@ export async function createHydroCycle(container, opts = {}) {
     g.setAttribute('aSoil', new THREE.BufferAttribute(so, 1));
     g.setAttribute('aU', new THREE.BufferAttribute(uu, 1));
     g.setIndex(ind);
+    g.computeVertexNormals();
     scene.add(new THREE.Mesh(g, strataMat));
     // 海水切面
     const wp = [], wi = [];
@@ -395,21 +428,8 @@ export async function createHydroCycle(container, opts = {}) {
     }
   }
   ['front', 'back', 'left', 'right'].forEach(buildFace);
-  const bottomMesh = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), new THREE.MeshBasicMaterial({ color: 0x2a2520 }));
-  bottomMesh.rotation.x = Math.PI / 2; bottomMesh.position.set((x0 + x1) / 2, bottom, (z0 + z1) / 2);
-  scene.add(bottomMesh);
-
-  // 展示台陰影
-  const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.ShadowMaterial({ opacity: 0.16 }));
-  shadowCatcher.rotation.x = -Math.PI / 2; shadowCatcher.position.y = bottom - 0.02; shadowCatcher.receiveShadow = true;
-  scene.add(shadowCatcher);
-  const contact = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false,
-    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: 'varying vec2 vUv; void main(){ vec2 d = abs(vUv - 0.5) * 2.0; float r = max(d.x, d.y); gl_FragColor = vec4(0.0, 0.0, 0.0, 0.35 * (1.0 - smoothstep(0.78, 1.0, r))); }',
-  }));
-  contact.rotation.x = -Math.PI / 2; contact.scale.set((x1 - x0) * 1.12, (z1 - z0) * 1.18, 1); contact.position.set((x0 + x1) / 2, bottom - 0.01, (z0 + z1) / 2);
-  scene.add(contact);
+  // 展示底座（帶倒角的木座）＋地面陰影
+  addPlinth(scene, { x0, x1, z0, z1, bottom });
 
   // ---------- 水面材質 ----------
   // uMode：0 靜水（窪地）、1 流動（河川、溪流，帶狀 uv：x 橫向、y 沿流向）、2 海洋
@@ -466,6 +486,7 @@ export async function createHydroCycle(container, opts = {}) {
           float foam = 0.0;
           vec3 base = mix(uShallow, uDeep, smoothstep(0.0, uDepthScale, vDepth));
           float alpha = mix(uMinA, uMaxA, smoothstep(0.0, 2.2, vDepth));
+          if (uMode < 0.5) { if (vDepth <= 0.0) discard; alpha = mix(0.35, uMaxA, smoothstep(0.0, 0.5, vDepth)) * smoothstep(0.0, 0.06, vDepth); }
           if (uMode > 0.5 && uMode < 1.5) {
             // 流動：陡處白水、兩岸細泡沫，泡沫紋理順流移動
             vec2 fp = vec2(vNormalMapUv.x * 7.0, vNormalMapUv.y * 3.5 - uTime * vSpeed * 1.6);
@@ -624,15 +645,15 @@ export async function createHydroCycle(container, opts = {}) {
   }
 
   // 窪蓄的水窪
-  const pondMat = waterMaterial({ mode: 0, shallow: 0x80a28a, deep: 0x3d6b66, minA: 0.6, maxA: 0.9 });
+  const pondMat = waterMaterial({ mode: 0, shallow: 0x6d7d62, deep: 0x2f4f4a, depthScale: 0.6, minA: 0.0, maxA: 0.86 });
   for (const p of ponds) {
-    const g = new THREE.CircleGeometry(p.r * 1.22, 48);
+    // 有好幾圈的圓盤：水深取自真正的地形，水邊就跟著地形起伏，不會是一個硬邊的圓
+    const g = new THREE.RingGeometry(0.001, p.r * 1.45, 64, 14);
     g.rotateX(-Math.PI / 2);
     const pp = g.attributes.position, uv = g.attributes.uv;
     const dep = new Float32Array(pp.count);
     for (let v = 0; v < pp.count; v++) {
-      const r = Math.hypot(pp.getX(v), pp.getZ(v)) / p.r;
-      dep[v] = Math.max(0, 1 - r * r) * 0.9;
+      dep[v] = (p.level - H(pp.getX(v) + p.x, pp.getZ(v) + p.z)) * 3.0;
       uv.setXY(v, (pp.getX(v) + p.x) * 0.09, (pp.getZ(v) + p.z) * 0.09);
     }
     g.setAttribute('aDepth', new THREE.BufferAttribute(dep, 1));
@@ -642,6 +663,8 @@ export async function createHydroCycle(container, opts = {}) {
     m.renderOrder = 3;
     scene.add(m);
   }
+
+  const villageApi = buildVillage(scene, village, { H, rainUniform });
 
   // ---------- 樹木：針葉、闊葉、檳榔、灌木 ----------
   const trees = [];
@@ -684,6 +707,7 @@ export async function createHydroCycle(container, opts = {}) {
       if (cdist[k] < 0.9) continue;
       if (acc[k] > 520 && y > 1.2) continue; // 不長在溪溝正中
       if (x > coast[Math.round(fj)] - 4) continue;
+      if (village.built[k]) continue;
       const m = mount[k];
       const forestN = nz2(x * 0.06, z * 0.06);
       const hill = m > 0.12 || y > 5;
@@ -1239,13 +1263,14 @@ export async function createHydroCycle(container, opts = {}) {
     heroWet.value += (heroWetTarget - heroWet.value) * Math.min(1, dt * 1.5);
     timeUniform.value = t;
     for (const f of Object.values(flows)) f.update(t);
+    villageApi.update(t);
   }
 
   // 左側面板遮住的寬度：把投影中心往右移，讓模型置中在可見區域
   let insetLeft = opts.insetLeft || 0, insetRight = opts.insetRight || 0;
   function resize() {
     const w = container.clientWidth, hgt = container.clientHeight;
-    renderer.setSize(w, hgt);
+    post.setSize(w, hgt);
     labelRenderer.setSize(w, hgt);
     camera.aspect = w / hgt;
     const shift = w > 760 ? (insetLeft - insetRight) / 2 : 0;
@@ -1269,7 +1294,8 @@ export async function createHydroCycle(container, opts = {}) {
     controls.enabled = !state.tween;
     controls.update();
     updateScene(state.t);
-    renderer.render(scene, camera);
+    post.render();
+    post.tick();
     labelRenderer.render(scene, camera);
     declutter();
     updateSpot();
@@ -1309,12 +1335,18 @@ export async function createHydroCycle(container, opts = {}) {
     // 影片用：指定時間與相機，同步輸出一格
     render(t, cam) {
       if (cam) { camera.position.set(...cam[0]); controls.target.set(...cam[1]); camera.lookAt(controls.target); }
+      else controls.update();
       updateScene(t);
-      renderer.render(scene, camera);
+      post.render();
       labelRenderer.render(scene, camera);
     },
+    // 畫質：'high' | 'medium' | 'low' | 'lowest'
+    setQuality(name) { const r = post.setLevel(name); resize(); return r; },
+    get qualityLevel() { return post.level; },
+    get fps() { return post.fps; },
+    tune: (p) => post.tune(p),
     camera, controls, scene, renderer,
-    info: { ms: T.ms },
+    info: { ms: T.ms }, terrain: T, village,
     dispose() { cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); container.innerHTML = ''; },
   };
 }

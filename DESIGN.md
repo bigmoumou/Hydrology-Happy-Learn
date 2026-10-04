@@ -274,3 +274,14 @@ bash ~/.claude/skills/opus-video/scripts/ov python tools/make_video.py productio
 - 滲漏：移到未飽和層較厚的山腳坡地，密集水滴往下鑽，未飽和層亮起並有往下移動的濕潤紋，加「未飽和層」標籤。
 - 雨絲改成深灰藍，淺色天空上也看得見。
 - 影片：以 1.5 倍裝置像素錄製、輸出 2560×1440，文字不再有鋸齒。
+
+## 11. 3D 品質升級（2026-10-04，用 3d-model skill）
+
+- **後製管線**（`scenes/lib/post.js`）：HDR 中間緩衝（HalfFloat＋4× MSAA）→ GTAO 接觸陰影 → bloom（門檻 2.6，只抓水面閃光）→ OutputPass 做色調映射。畫質四級 high／medium（關 GTAO）／low／lowest（不走後製），掉幀自動降一級、只降不升；手機預設 medium；做影片時固定 high。GTAO 只算不透明網格（雨、雲、粒子、水面不參與）。
+- **陰影改成靜態**：投影的東西都不會動，陰影圖只在開場與換畫質時重算（`post.invalidateShadows()`）。水文循環每格的三角形從約 1000 萬降到約 900 萬（含新增的 GTAO）。會動的車、船不投影。
+- **展示底座**（`addPlinth`）：三個場景都放在帶倒角的胡桃木座上（木紋、低環境反射，避免偏紫灰），切面依朝向打光（正面亮、側面暗一階）。切面幾何補了朝外的法線。
+- **水文循環**：海岸公路（河口有橋，引道自然成路堤）、農路、透天厝（陽台、鐵捲門、屋頂水塔）、三合院（紅瓦、護龍、埕）、沿路慢慢開的小車（`village.js`、`lib/buildings.js`）；窪地改成不規則邊緣、水下深色淤泥、水邊濕土；岩壁加順坡雨痕與裂隙；葉面水珠只在整棵濕透（截留主角樹）時閃。
+- **水庫**：溢洪道移到峽谷中段（原位置大半埋在山體裡），白水條紋往下越白；壩頂路面、雙側護欄、路燈、停放的車；取水塔＋連絡橋（水體剖面看得到塔身）；壩趾發電廠＋沿下游壩面的壓力鋼管；溢洪道導牆；湖上小船（水淺時不出現）（`reservoir/structures.js`）。岩壁變暗、消落帶改成偏暖的裸露土石。
+- **修掉的舊 bug**：水庫、台灣場景回傳物件用 `...stage` 展開，`time`、`step` 被凍成 0，互動實驗依時間推進的動畫停住；改成原型繼承。
+- **開發用檢視頁**：`lab/scene3d.html?s=hydro|rv|tw&step=<id>&labels=0`，提供 3d-model skill 的 `window.__app` 截圖介面。截圖：`bash ~/.claude/skills/3d-model/scripts/shoot "http://127.0.0.1:8790/lab/scene3d.html?s=hydro" --sheet --tag r1`。
+- 純 CPU（SwiftShader 軟體渲染）實測不到 1 fps，瓶頸是幾千棵樹的幾何量；使用者決定只針對有顯卡的電腦。

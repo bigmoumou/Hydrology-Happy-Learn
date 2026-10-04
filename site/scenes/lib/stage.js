@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { Sky } from 'three/addons/objects/Sky.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { createPost } from './post.js';
 
 export const GLSL_NOISE = /* glsl */`
   float hash12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
@@ -12,9 +14,19 @@ export const GLSL_NOISE = /* glsl */`
   float fbm2(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++){ s += a * vnoise(p); p *= 2.03; a *= 0.5; } return s; }
 `;
 
-export function createStage(container, { quality = 'high', capture = false, fov = 34, sunDir = new THREE.Vector3(-0.52, 0.66, 0.54), shadowBox = 100, steps = [] } = {}) {
+// 切面的打光：正面亮、側面暗一階（像拿燈照實體剖面模型），地表下緣一圈很淺的接觸暗部
+export const GLSL_FACE = /* glsl */`
+  float faceLight(vec3 n, float depth, float h){
+    float key = clamp(dot(normalize(n), normalize(vec3(-0.32, 0.0, 1.0))), 0.0, 1.0);
+    float lit = 0.60 + 0.42 * key;
+    lit *= 1.0 - 0.10 * (1.0 - smoothstep(0.05, 1.6, depth)) * smoothstep(0.0, 0.05, depth);
+    lit *= mix(0.9, 1.0, smoothstep(0.0, 6.0, h));
+    return lit;
+  }
+`;
+
+export function createStage(container, { quality = 'high', capture = false, fov = 34, sunDir = new THREE.Vector3(-0.52, 0.66, 0.54), shadowBox = 100, steps = [], aoRadius = 2.4 } = {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: capture });
-  renderer.setPixelRatio(capture ? window.devicePixelRatio : Math.min(window.devicePixelRatio, quality === 'high' ? 2 : 1));
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -29,6 +41,7 @@ export function createStage(container, { quality = 'high', capture = false, fov 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.dampingFactor = 0.08;
   controls.minDistance = 6; controls.maxDistance = 320; controls.maxPolarAngle = Math.PI * 0.495;
+  const post = createPost(renderer, scene, camera, { level: quality, capture, ao: { radius: aoRadius } });
 
   sunDir = sunDir.clone().normalize();
   const sky = new Sky(); sky.scale.setScalar(10000);
@@ -61,6 +74,7 @@ export function createStage(container, { quality = 'high', capture = false, fov 
       }`,
   }));
   bg.renderOrder = -10;
+  bg.userData.noAO = true;
   scene.add(bg);
 
   const timeUniform = { value: 0 };
@@ -72,7 +86,7 @@ export function createStage(container, { quality = 'high', capture = false, fov 
   function resize() {
     const w = container.clientWidth, h = container.clientHeight;
     if (!w || !h) return;
-    renderer.setSize(w, h); labelRenderer.setSize(w, h);
+    post.setSize(w, h); labelRenderer.setSize(w, h);
     camera.aspect = w / h;
     const shift = w > 760 ? (insetLeft - insetRight) / 2 : 0;
     if (shift !== 0) camera.setViewOffset(w, h, -shift, 0, w, h); else camera.clearViewOffset();
@@ -109,7 +123,8 @@ export function createStage(container, { quality = 'high', capture = false, fov 
     controls.update();
     timeUniform.value = state.t;
     updates.forEach((f) => f(state.t, dt));
-    renderer.render(scene, camera);
+    post.render();
+    post.tick();
     labelRenderer.render(scene, camera);
   }
   const ro = new ResizeObserver(resize);
@@ -126,7 +141,7 @@ export function createStage(container, { quality = 'high', capture = false, fov 
   }
 
   const api = {
-    renderer, scene, camera, controls, sun, sunDir, timeUniform, state, steps,
+    renderer, scene, camera, controls, sun, sunDir, timeUniform, state, steps, post,
     label, onStep: (f) => stepHooks.push(f), onUpdate: (f) => updates.push(f), onScale: (f) => scaleHooks.push(f),
     start() { resize(); if (steps.length) setStep(0, { instant: true }); if (!capture) raf = requestAnimationFrame(frame); },
     resize,
@@ -136,6 +151,20 @@ export function createStage(container, { quality = 'high', capture = false, fov 
     get time() { return state.t; },
     setPaused(p) { state.paused = p; },
     setInsets(l, r) { insetLeft = l; insetRight = r; resize(); },
+    // 截圖、逐格輸出用：指定時間畫一格
+    render(t, cam) {
+      if (cam) { camera.position.set(...cam[0]); controls.target.set(...cam[1]); }
+      const dt = Math.max(0, Math.min(0.1, t - state.t)); state.t = t;
+      controls.update(); timeUniform.value = t;
+      updates.forEach((f) => f(t, dt));
+      post.render();
+      labelRenderer.render(scene, camera);
+    },
+    setQuality(name) { const r = post.setLevel(name); resize(); return r; },
+    get qualityLevel() { return post.level; },
+    get fps() { return post.fps; },
+    tune: (p) => post.tune(p),
+    post,
     setDrift(speed) { driftSpeed = speed; controls.autoRotate = speed > 0; controls.autoRotateSpeed = speed; },
     setControls(mode) { controls.enableRotate = mode !== 'none'; controls.enableZoom = mode === 'full'; controls.enablePan = mode === 'full'; },
     setActive(on) {
@@ -152,9 +181,10 @@ export function strataMaterial({ bottom, timeUniform }) {
   return new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
     uniforms: { uBottom: { value: bottom }, uTime: timeUniform, uLight: { value: 1.0 } },
-    vertexShader: `attribute float aSurf, aSoil, aU; varying float vSurf, vSoil, vU; varying vec3 vPos;
-      void main(){ vSurf = aSurf; vSoil = aSoil; vU = aU; vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-    fragmentShader: `uniform float uBottom, uTime, uLight; varying float vSurf, vSoil, vU; varying vec3 vPos;
+    vertexShader: `attribute float aSurf, aSoil, aU; varying float vSurf, vSoil, vU; varying vec3 vPos, vN;
+      void main(){ vSurf = aSurf; vSoil = aSoil; vU = aU; vPos = position; vN = normal; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform float uBottom, uTime, uLight; varying float vSurf, vSoil, vU; varying vec3 vPos, vN;
+      ${GLSL_FACE}
       ${GLSL_NOISE}
       void main(){
         float y = vPos.y, u = vU, depth = vSurf - y;
@@ -183,6 +213,7 @@ export function strataMaterial({ bottom, timeUniform }) {
         col = mix(col, vec3(0.17, 0.105, 0.055) * (0.85 + 0.25 * grain), 1.0 - smoothstep(topT - 0.08, topT + 0.08, depth));
         col *= mix(0.8, 1.0, smoothstep(uBottom, uBottom + 10.0, y));
         col = mix(col, col * 1.45, 1.0 - smoothstep(0.0, 0.06, depth));
+        col *= faceLight(vN, depth, y - uBottom);
         gl_FragColor = vec4(col * uLight, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -205,30 +236,62 @@ export function buildBlockFaces(scene, { h, nx, nz, x0, z0, dx, bottom, soilAt =
       so[c * 2] = so[c * 2 + 1] = soilAt(x, z, h[k]);
       uu[c * 2] = uu[c * 2 + 1] = u;
     });
-    const ind = [];
-    for (let c = 0; c < n - 1; c++) { const a = c * 2; ind.push(a, a + 1, a + 2, a + 2, a + 1, a + 3); }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('aSurf', new THREE.BufferAttribute(surf, 1));
     g.setAttribute('aSoil', new THREE.BufferAttribute(so, 1));
     g.setAttribute('aU', new THREE.BufferAttribute(uu, 1));
-    g.setIndex(ind);
+    g.setIndex(faceIndex(n, side === 'back' || side === 'right'));
+    g.computeVertexNormals();
     scene.add(new THREE.Mesh(g, material));
   }
-  const x1 = X(nx - 1), z1 = Z(nz - 1);
-  const bottomMesh = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), new THREE.MeshBasicMaterial({ color: 0x2a2520 }));
-  bottomMesh.rotation.x = Math.PI / 2; bottomMesh.position.set((x0 + x1) / 2, bottom, (z0 + z1) / 2);
-  scene.add(bottomMesh);
-  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.ShadowMaterial({ opacity: 0.16 }));
-  catcher.rotation.x = -Math.PI / 2; catcher.position.y = bottom - 0.02; catcher.receiveShadow = true;
+  return addPlinth(scene, { x0, x1: X(nx - 1), z0, z1: Z(nz - 1), bottom });
+}
+
+// 切面三角形：前、左面原本就朝外；後、右面要反過來，法線才會一律朝外（GTAO 的法線圖要用）
+export function faceIndex(n, flip) {
+  const ind = [];
+  for (let c = 0; c < n - 1; c++) {
+    const a = c * 2;
+    if (flip) ind.push(a, a + 2, a + 1, a + 2, a + 3, a + 1);
+    else ind.push(a, a + 1, a + 2, a + 2, a + 1, a + 3);
+  }
+  return ind;
+}
+
+// 展示底座：帶倒角的深色木座，方塊坐在上面、四周留一圈邊。底座下方是接陰影的地面和柔和的接觸暗部。
+export function addPlinth(scene, { x0, x1, z0, z1, bottom, margin = 2.6, height = 4, color = 0x74492b }) {
+  const w = x1 - x0 + margin * 2, d = z1 - z0 + margin * 2, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0, envMapIntensity: 0.25 });
+  mat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vPW;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPW = (modelMatrix * vec4(position, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec3 vPW;\n${GLSL_NOISE}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        {
+          // 木紋：沿長邊拉長的雜訊條紋
+          vec2 q = vec2(vPW.x * 0.035 + vPW.y * 0.4, (vPW.z + vPW.y) * 0.9);
+          float grain = fbm2(vec2(q.x * 3.0, q.y * 0.35 + fbm2(q * 0.8) * 2.0));
+          float ring = 0.5 + 0.5 * sin(q.y * 6.0 + grain * 9.0);
+          diffuseColor.rgb *= 0.86 + 0.16 * grain + 0.06 * ring;
+        }`);
+  };
+  const plinth = new THREE.Mesh(new RoundedBoxGeometry(w, height, d, 4, Math.min(0.9, height * 0.28)), mat);
+  plinth.position.set(cx, bottom - height / 2 + 0.02, cz);
+  plinth.castShadow = true; plinth.receiveShadow = true;
+  scene.add(plinth);
+  const floorY = bottom - height;
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), new THREE.ShadowMaterial({ opacity: 0.16 }));
+  catcher.rotation.x = -Math.PI / 2; catcher.position.y = floorY - 0.02; catcher.receiveShadow = true;
   scene.add(catcher);
   const contact = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: 'varying vec2 vUv; void main(){ vec2 d = abs(vUv - 0.5) * 2.0; float r = max(d.x, d.y); gl_FragColor = vec4(0.0, 0.0, 0.0, 0.35 * (1.0 - smoothstep(0.78, 1.0, r))); }',
+    fragmentShader: 'varying vec2 vUv; void main(){ vec2 d = abs(vUv - 0.5) * 2.0; float r = max(d.x, d.y); gl_FragColor = vec4(0.0, 0.0, 0.0, 0.42 * (1.0 - smoothstep(0.80, 1.0, r))); }',
   }));
-  contact.rotation.x = -Math.PI / 2; contact.scale.set((x1 - x0) * 1.12, (z1 - z0) * 1.2, 1); contact.position.set((x0 + x1) / 2, bottom - 0.01, (z0 + z1) / 2);
+  contact.rotation.x = -Math.PI / 2; contact.scale.set(w * 1.08, d * 1.16, 1); contact.position.set(cx, floorY - 0.01, cz);
   scene.add(contact);
+  return { plinth, floorY };
 }
 
 // 3D 粗箭頭（給水量收支用）：沿 +y 建立，長度可用 scale.y 調
