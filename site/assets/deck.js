@@ -18,6 +18,16 @@ export class Deck {
     addEventListener('keydown', (e) => this.key(e));
     addEventListener('hashchange', () => this.fromHash());
     this.bindWheelAndTouch();
+    // 封面上的入口按鈕：data-deck="next|lab|video"
+    root.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-deck]');
+      if (!b) return;
+      e.preventDefault();
+      const a = b.dataset.deck;
+      if (a === 'next') this.next();
+      else if (a === 'lab') this.go(this.labIndex(), 0);
+      else if (a === 'video') this.toggleVideo(true);
+    });
     // 用滑鼠拖完滑桿後交還鍵盤焦點，方向鍵才能繼續換頁
     addEventListener('pointerup', (e) => { if (e.target.matches?.('input[type=range]')) e.target.blur(); });
     this.fromHash(true);
@@ -94,7 +104,12 @@ export class Deck {
     else if (this.i > 0) this.go(this.i - 1, this.frags(this.i - 1).length);
   }
 
+  // 網址 #/lab：互動實驗頁；#/video：直接開影片
+  labIndex() { const i = this.slides.findIndex((s) => s.dataset.layout === 'lab'); return i < 0 ? 0 : i; }
+
   fromHash(first = false) {
+    if (/^#\/lab/.test(location.hash)) { this.go(this.labIndex(), 0, { instant: first }); return; }
+    if (/^#\/video/.test(location.hash)) { this.go(0, 0, { fromHash: true, instant: first }); this.toggleVideo(true); return; }
     const m = location.hash.match(/^#\/(\d+)(?:\/(\d+))?/);
     if (m) this.go(+m[1] - 1, +(m[2] || 0), { fromHash: true, instant: first });
     else if (first) this.go(0, 0, { instant: true });

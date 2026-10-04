@@ -184,6 +184,7 @@ var { font-family: "Cambria Math", "Times New Roman", serif; font-style: italic;
 .hc-label__en { font-size: calc(15px * var(--s)); font-style: italic; color: #3d4549; }
 .hc-label::after { content: ""; width: 2px; height: calc(22px * var(--s)); margin-top: calc(3px * var(--s)); background: rgba(18, 23, 26, .75); border-radius: 1px; }
 .hc-label.is-dim { opacity: .6; }
+.hc-label.is-hidden { opacity: 0 !important; }
 .hc-label.is-active { color: #0b557b; }
 .hc-label.is-active .hc-label__box { transform: scale(1.15); background: rgba(255, 255, 255, .94); border-color: rgba(15, 108, 155, .55); box-shadow: 0 6px 24px rgba(15, 108, 155, .38); }
 .hc-label.is-active::after { background: #0b557b; }
@@ -234,3 +235,14 @@ var { font-family: "Cambria Math", "Times New Roman", serif; font-style: italic;
 .calc .num { font-family: var(--mono); color: var(--accent-ink); font-size: 22px; display: block; }
 .big-num { font-family: var(--mono); font-size: 52px; color: var(--accent-ink); font-weight: 700; }
 .warn { color: #b23a30; }
+
+/* 封面的入口按鈕 */
+.entry { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 26px; }
+.entry button { display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px 13px; font-size: 24px; font-weight: 700; border-radius: 16px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.85); background: rgba(255,255,255,.62); color: #1b2327; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px rgba(28,38,48,.12); transition: transform .2s var(--ease), box-shadow .2s, background .2s; }
+.entry button:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(28,38,48,.18); background: rgba(255,255,255,.85); }
+.entry button.is-primary { background: #0f6c9b; color: #fff; border-color: rgba(255,255,255,.4); }
+.entry button.is-primary:hover { background: #0b5b84; }
+.entry button small { font-size: 16px; font-weight: 400; opacity: .75; }
+.deck.is-capture .entry { display: none; }

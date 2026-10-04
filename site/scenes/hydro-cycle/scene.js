@@ -645,6 +645,8 @@ export async function createHydroCycle(container, opts = {}) {
 
   // ---------- 樹木：針葉、闊葉、檳榔、灌木 ----------
   const trees = [];
+  let heroSpot = null;
+  const heroWet = { value: 0 };
   {
     const species = {
       conA: { geo: coniferGeometry(11), top: 1.6, list: [] },
@@ -655,9 +657,23 @@ export async function createHydroCycle(container, opts = {}) {
       shrub: { geo: shrubGeometry(7), top: 0.4, list: [] },
     };
     const maxN = { high: 7800, medium: 4500, low: 2400 }[quality];
+    // 截留的主角樹：在前緣找一塊平坦、不在水邊的空地
+    {
+      let best = null, bd = Infinity;
+      for (let z = 33; z <= 38.5; z += 0.25) for (let x = -27; x <= -11; x += 0.25) {
+        const k = Math.round((z - z0) / dx) * nx + Math.round((x - x0) / dx);
+        const y = h[k], slope = 1 - tNor[k * 3 + 1];
+        if (y < 2 || slope > 0.12 || waterLevel[k] > -999 || cdist[k] < 3 || tPaddy[k] > 0.05 || acc[k] > 200) continue;
+        if (rdist[k] < riverWAt(sMouth) + 3) continue;
+        const d = Math.hypot(x + 19, z - 36.5);
+        if (d < bd) { bd = d; best = { x, z, y }; }
+      }
+      heroSpot = best || { x: -19, z: 36.5, y: H(-19, 36.5) };
+    }
     let count = 0;
     for (let t = 0; t < maxN * 8 && count < maxN; t++) {
       const x = x0 + 1 + rand() * (x1 - x0 - 2), z = z0 + 1 + rand() * (z1 - z0 - 2);
+      if (Math.hypot(x - heroSpot.x, z - heroSpot.z) < 2.8) continue;
       const fi = (x - x0) / dx, fj = (z - z0) / dx;
       const k = Math.round(fj) * nx + Math.round(fi);
       const y = sampleBilinear(h, nx, nz, fi, fj);
@@ -704,6 +720,24 @@ export async function createHydroCycle(container, opts = {}) {
       });
       mesh.castShadow = true; mesh.receiveShadow = true;
       scene.add(mesh);
+    }
+    {
+      const s = 1.9;
+      const hm = new THREE.Mesh(broadleafGeometry(5), treeMaterial({ time: timeUniform, sunDir: sun3, wet: heroWet }));
+      hm.position.set(heroSpot.x, heroSpot.y - 0.05, heroSpot.z);
+      hm.scale.setScalar(s); hm.rotation.y = 0.6;
+      hm.castShadow = true; hm.receiveShadow = true;
+      scene.add(hm);
+      trees.push({ x: heroSpot.x, y: heroSpot.y, z: heroSpot.z, s, rot: 0.6, tint: 1, hue: 0, top: 1.45 * s, hero: true });
+      // 樹冠正下方：雨水滴落把地面打濕
+      const R = 0.95 * s;
+      for (let j = Math.max(0, Math.floor((heroSpot.z - R - z0) / dx)); j <= Math.min(nz - 1, Math.ceil((heroSpot.z + R - z0) / dx)); j++)
+        for (let i = Math.max(0, Math.floor((heroSpot.x - R - x0) / dx)); i <= Math.min(nx - 1, Math.ceil((heroSpot.x + R - x0) / dx)); i++) {
+          const d = Math.hypot(X(i) - heroSpot.x, Z(j) - heroSpot.z) / R;
+          if (d >= 1) continue;
+          const kk = j * nx + i, f = 1 - 0.28 * (1 - d * d);
+          tCol[kk * 3] *= f * 0.97; tCol[kk * 3 + 1] *= f * 0.99; tCol[kk * 3 + 2] *= f * 1.05;
+        }
     }
     // 樹下的地面比較暗（林蔭與落葉）
     const colAttr = tGeo.attributes.color;
@@ -762,9 +796,9 @@ export async function createHydroCycle(container, opts = {}) {
       vec3 nW = normalize(transpose(mat3(viewMatrix)) * nV);
       float lit = clamp(0.5 + 0.55 * dot(nW, uSun), 0.0, 1.0);
       float hgt = clamp((vCy - ${CLOUD_BASE.toFixed(1)}) / 7.0 + nW.y * 0.3, 0.0, 1.0);
-      vec3 shade = mix(vec3(0.56, 0.61, 0.68), vec3(0.40, 0.44, 0.52), vP.y);
-      vec3 col = mix(shade, vec3(1.0, 0.985, 0.955), lit * mix(0.5, 1.0, hgt));
-      col += vec3(1.0, 0.96, 0.88) * pow(1.0 - nV.z, 3.0) * max(0.0, dot(nW, uSun)) * 0.35;
+      vec3 shade = mix(vec3(0.47, 0.52, 0.60), vec3(0.33, 0.37, 0.45), vP.y);
+      vec3 col = mix(shade, vec3(0.92, 0.93, 0.94), lit * mix(0.45, 0.95, hgt));
+      col += vec3(1.0, 0.97, 0.9) * pow(1.0 - nV.z, 3.0) * max(0.0, dot(nW, uSun)) * 0.25;
       gl_FragColor = vec4(col, a * uOpacity);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
@@ -831,7 +865,7 @@ export async function createHydroCycle(container, opts = {}) {
 
   // 截留的主角樹：前緣、看得清楚的一棵
   const pickTree = (fx, fz) => trees.reduce((b, t2) => ((t2.x - fx) ** 2 + (t2.z - fz) ** 2 < (b.x - fx) ** 2 + (b.z - fz) ** 2 ? t2 : b), trees[0]);
-  const tHero = pickTree(-21, 36.5);
+  const tHero = trees.find((t2) => t2.hero);
   // ---------- 雨 ----------
   const heroRain = 1600;
   const rainCount = { high: 9000, medium: 6000, low: 3000 }[quality] + heroRain;
@@ -868,7 +902,7 @@ export async function createHydroCycle(container, opts = {}) {
       const hero = r >= rainCount - heroRain;
       const cl = hero ? [tHero.x, tHero.z] : clusters[Math.floor(rand() * 6)];
       const a = rand() * Math.PI * 2, rr = Math.sqrt(rand());
-      const x = clamp(cl[0] + Math.cos(a) * rr * (hero ? 7 : 12), x0 + 0.3, x1 - 0.3), z = clamp(cl[1] + Math.sin(a) * rr * (hero ? 5 : 9), z0 + 0.3, z1 - 0.3);
+      const x = clamp(cl[0] + Math.cos(a) * rr * (hero ? 3.2 : 12), x0 + 0.3, x1 - 0.3), z = clamp(cl[1] + Math.sin(a) * rr * (hero ? 3.2 : 9), z0 + 0.3, z1 - 0.3);
       let gy = H(x, z);
       const k = Math.round((z - z0) / dx) * nx + Math.round((x - x0) / dx);
       if (waterLevel[k] > -999) gy = Math.max(gy, waterLevel[k]);
@@ -948,14 +982,14 @@ export async function createHydroCycle(container, opts = {}) {
       const ox = (rand() - 0.5) * 0.5 * t2.s, oz = (rand() - 0.5) * 0.5 * t2.s;
       paths.push(P([t2.x + ox, t2.y + t2.top * 0.75, t2.z + oz, t2.x + ox * 1.2, t2.y + 0.04, t2.z + oz * 1.2]));
     }
-    const near = trees.filter((t2) => Math.hypot(t2.x - tHero.x, t2.z - tHero.z) < 4.5);
-    for (let n = 0; n < 420 && near.length; n++) {
-      const t2 = n < 180 ? tHero : near[Math.floor(rand() * near.length)];
-      const a = rand() * Math.PI * 2, rr = (0.15 + rand() * 0.3) * t2.s;
-      const xx = t2.x + Math.cos(a) * rr, zz = t2.z + Math.sin(a) * rr;
-      paths.push(P([xx, t2.y + t2.top * 0.55, zz, xx, H(xx, zz) + 0.03, zz]));
-    }
     flows.drip = new FlowSystem(paths, { color: 0x2f8fe0, size: 0.2, perPath: 2, speed: 1.4, rand, fade: 0.15, trail: 4, gap: 0.1, name: 'drip' });
+    const hp = [];
+    for (let n = 0; n < 70; n++) {
+      const a = rand() * Math.PI * 2, rr = (0.25 + 0.75 * Math.sqrt(rand())) * 0.55 * tHero.s;
+      const xx = tHero.x + Math.cos(a) * rr, zz = tHero.z + Math.sin(a) * rr;
+      hp.push(P([xx, tHero.y + tHero.top * (0.42 + 0.1 * rand()), zz, xx, H(xx, zz) + 0.03, zz]));
+    }
+    flows.dripHero = new FlowSystem(hp, { color: 0x4aa8ff, size: 0.075, perPath: 2, speed: 2.2, rand, fade: 0.08, trail: 6, gap: 0.05, name: 'dripHero' });
   }
   // 前切面：入滲、滲漏、中間流、地下水、出滲
   {
@@ -1076,10 +1110,10 @@ export async function createHydroCycle(container, opts = {}) {
   spot.className = 'hc-spot';
   spot.innerHTML = '<div class="hc-ring"></div>';
   container.appendChild(spot);
-  const crown = [tHero.x, tHero.y + tHero.top * 0.62, tHero.z];
+  const crown = [tHero.x, tHero.y + tHero.top * 0.5, tHero.z];
   const xcF = xc, lvC = levelC;
   const FOCUS = {
-    interception: { p: crown, r: 0.95 * tHero.s },
+    interception: { p: crown, r: 1.15 * tHero.s },
     depression: { p: [ponds[0].x, ponds[0].level, ponds[0].z], r: ponds[0].r * 1.5 },
     infiltration: { p: [-12, HF(-12) - 0.45, zf], r: 2.4 },
     interflow: { p: [xcF - 2.2, lvC - 0.1, zf], r: 2.6 },
@@ -1091,8 +1125,8 @@ export async function createHydroCycle(container, opts = {}) {
   };
   // 截留：鏡頭拉近到前緣的一棵樹
   const stI = STEPS.find((st) => st.id === 'interception');
-  if (stI) stI.cam = [[crown[0] + 6.5, crown[1] + 3.2, crown[2] + 10.5], [crown[0] - 0.6, crown[1] - 0.6, crown[2]]];
-  labels.interception.obj.position.set(crown[0], crown[1] + tHero.top * 0.55, crown[2]);
+  if (stI) stI.cam = [[crown[0] + 6.5, crown[1] + 6.0, crown[2] + 11.5], [crown[0] - 1.8, crown[1] - 0.6, crown[2]]];
+  labels.interception.obj.position.set(crown[0], tHero.y + tHero.top * 1.05, crown[2]);
   let focus = null;
   const vA = new THREE.Vector3(), vB = new THREE.Vector3(), camRight = new THREE.Vector3();
   function updateSpot() {
@@ -1110,12 +1144,33 @@ export async function createHydroCycle(container, opts = {}) {
     spot.style.setProperty('--sr', r.toFixed(1) + 'px');
   }
 
+  // ---------- 標籤避讓 ----------
+  const LABEL_PRIORITY = ['precipitation', 'evaporation', 'ocean', 'river', 'overland', 'transpiration', 'interception', 'depression',
+    'groundwater', 'infiltration', 'interflow', 'percolation', 'unsat', 'gwt', 'exfiltration'];
+  function declutter() {
+    const order = Object.keys(labels).sort((a, b) => {
+      const pa = labels[a].el.classList.contains('is-active') ? -1 : LABEL_PRIORITY.indexOf(a);
+      const pb = labels[b].el.classList.contains('is-active') ? -1 : LABEL_PRIORITY.indexOf(b);
+      return pa - pb;
+    });
+    const placed = [];
+    for (const id of order) {
+      const l = labels[id];
+      if (!l.obj.visible || l.el.style.display === 'none') continue;
+      const r = (l.box ||= l.el.querySelector('.hc-label__box')).getBoundingClientRect();
+      const pad = 6;
+      const hit = placed.some((q) => r.left - pad < q.right && r.right + pad > q.left && r.top - pad < q.bottom && r.bottom + pad > q.top);
+      l.el.classList.toggle('is-hidden', hit);
+      if (!hit) placed.push(r);
+    }
+  }
+
   onProgress('完成', 1);
 
   // ---------- 導覽與狀態 ----------
   const state = { step: 0, rain: true, labels: true, paused: false, t: 0, tween: null };
   const stepFlows = {
-    cover: 'all', overview: 'all', precipitation: ['rain'], interception: ['drip', 'rain'], depression: ['overland', 'rain'],
+    cover: 'all', overview: 'all', precipitation: ['rain'], interception: ['dripHero', 'drip', 'rain'], depression: ['overland', 'rain'],
     infiltration: ['infil'], overland: ['overland'], interflow: ['interflow'], percolation: ['perc', 'percd'], groundwater: ['gw'],
     exfiltration: ['exfil'], evaporation: ['evap', 'evapw'], transpiration: ['transp', 'transpw'],
   };
@@ -1129,6 +1184,7 @@ export async function createHydroCycle(container, opts = {}) {
     const has = (n) => on === 'all' || on.includes(n);
     const calm = id === 'overview' || id === 'cover';
     for (const [name, f] of Object.entries(flows)) f.material.uniforms.uOpacity.value = has(name) ? (calm ? (name === 'evapw' || name === 'transpw' ? 0.3 : 0.55) : 1) : 0.08;
+    if (id === 'interception') flows.drip.material.uniforms.uOpacity.value = 0.22;
     base.rain = has('rain') || id === 'depression' ? 1 : (id === 'evaporation' || id === 'transpiration' || id === 'exfiltration' ? 0 : 0.3);
     rainMat.uniforms.uW.value = id === 'precipitation' ? 0.075 : 0.045;
     rainMat.uniforms.uLen.value = id === 'precipitation' ? 1.5 : 1.1;
@@ -1137,7 +1193,8 @@ export async function createHydroCycle(container, opts = {}) {
     applyGains();
     strataMat.uniforms.uGwHi.value = id === 'groundwater' || id === 'percolation' ? 1 : 0;
     strataMat.uniforms.uUnsat.value = id === 'percolation' ? 1 : 0;
-    wetTarget = id === 'interception' ? 1 : (state.rain && (on === 'all' || has('rain')) ? 0.35 : 0);
+    wetTarget = id === 'interception' ? 0.3 : (state.rain && (on === 'all' || has('rain')) ? 0.35 : 0);
+    heroWetTarget = id === 'interception' ? 1 : wetTarget;
     focus = FOCUS[id] || null;
     const active = stepLabel[id];
     for (const [lid, l] of Object.entries(labels)) {
@@ -1175,10 +1232,11 @@ export async function createHydroCycle(container, opts = {}) {
     return STEPS[state.step];
   }
 
-  let wetTarget = 0, lastT = 0;
+  let wetTarget = 0, heroWetTarget = 0, lastT = 0;
   function updateScene(t) {
     const dt = Math.max(0, Math.min(0.1, t - lastT)); lastT = t;
     wetUniform.value += (wetTarget - wetUniform.value) * Math.min(1, dt * 1.5);
+    heroWet.value += (heroWetTarget - heroWet.value) * Math.min(1, dt * 1.5);
     timeUniform.value = t;
     for (const f of Object.values(flows)) f.update(t);
   }
@@ -1213,6 +1271,7 @@ export async function createHydroCycle(container, opts = {}) {
     updateScene(state.t);
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
+    declutter();
     updateSpot();
   }
 

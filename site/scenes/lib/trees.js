@@ -166,9 +166,9 @@ export function shrubGeometry(seed = 4) {
 // 樹的材質：微風擺動（越高擺越多）＋逆光時葉子透光
 // uWet（0–1）：葉面沾滿雨水（截留），葉子變暗、變亮滑，並有閃爍的水珠
 export const wetUniform = { value: 0 };
-export function treeMaterial({ time, sunDir, wind = 0.035, translucency = 0.5, side = THREE.FrontSide }) {
+export function treeMaterial({ time, sunDir, wind = 0.035, translucency = 0.5, side = THREE.FrontSide, wet = wetUniform }) {
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0, side });
-  const u = { uTime: time, uWind: { value: wind }, uSunDir: { value: sunDir.clone() }, uTrans: { value: translucency }, uWet: wetUniform };
+  const u = { uTime: time, uWind: { value: wind }, uSunDir: { value: sunDir.clone() }, uTrans: { value: translucency }, uWet: wet };
   m.userData.uniforms = u;
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, u);
