@@ -34,6 +34,8 @@ export const LEVELS = [
 ];
 
 export function createPost(renderer, scene, camera, { level = 'high', capture = false, ao = {}, bloom = {} } = {}) {
+  // 做影片時（網址有 ?capture）一律最高畫質：虛擬時鐘固定每秒 30 格，不能被當成掉幀而降級
+  if (new URLSearchParams(location.search).has('capture')) { capture = true; level = 'high'; }
   const T = {
     aoRadius: 2.5, aoIntensity: 0.9, aoThickness: 1, aoFalloff: 1, aoPerDist: 0.016, aoDistance: null,
     bloomStrength: 0.2, bloomRadius: 0.45, bloomThreshold: 2.6,
