@@ -241,9 +241,31 @@ export function treeMaterial({ time, sunDir, wind = 0.035, translucency = 0.5, s
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
         uniform vec3 uSunDir; uniform float uTrans, uWet, uTime; varying vec3 vTreeWP;
-        float tHash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }`)
+        float tHash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+        float tNoise(vec3 x){ vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(mix(tHash(i), tHash(i + vec3(1,0,0)), f.x), mix(tHash(i + vec3(0,1,0)), tHash(i + vec3(1,1,0)), f.x), f.y),
+                     mix(mix(tHash(i + vec3(0,0,1)), tHash(i + vec3(1,0,1)), f.x), mix(tHash(i + vec3(0,1,1)), tHash(i + vec3(1,1,1)), f.x), f.y), f.z); }`)
       .replace('#include <color_fragment>', `#include <color_fragment>
+        // 葉叢：綠色的部分（不含樹幹）加上一團團的明暗，近看再加凹凸；遠處淡掉，避免閃爍
+        float leafy = 0.0, leafN = 0.5;
+        #ifdef USE_COLOR
+          leafy = smoothstep(0.0, 0.03, vColor.g - vColor.r);
+        #endif
+        float leafNear = 1.0 - smoothstep(25.0, 80.0, length(vViewPosition));
+        float leafLo = tNoise(vTreeWP * 5.0);
+        leafN = leafLo * 0.7 + tNoise(vTreeWP * 11.0) * 0.3;
+        diffuseColor.rgb *= mix(1.0, 0.86 + 0.28 * leafN, leafy * (0.4 + 0.6 * leafNear));
         diffuseColor.rgb *= 1.0 - 0.22 * uWet;`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        if (leafy * leafNear > 0.01) {
+          // 用葉叢雜訊當凹凸貼圖（螢幕空間導數），讓樹冠表面有細碎的受光變化
+          vec3 dpx = dFdx(-vViewPosition), dpy = dFdy(-vViewPosition);
+          float dhx = dFdx(leafLo), dhy = dFdy(leafLo);
+          vec3 r1 = cross(dpy, normal), r2 = cross(normal, dpx);
+          float det = dot(dpx, r1);
+          vec3 grad = sign(det) * (dhx * r1 + dhy * r2);
+          normal = normalize(abs(det) * normal - grad * 0.22 * leafy * leafNear);
+        }`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         roughnessFactor = mix(roughnessFactor, 0.28, uWet);`)
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>

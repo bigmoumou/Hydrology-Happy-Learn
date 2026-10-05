@@ -8,6 +8,7 @@ const VERT = /* glsl */`
   uniform float uScale;
   uniform float uSize;
   uniform float uAmount;
+  uniform float uSoft;
   varying float vAlpha;
   void main() {
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
@@ -15,6 +16,8 @@ const VERT = /* glsl */`
     gl_PointSize = uSize * aSize * uScale / -mv.z;
     // 流量越小，看得到的粒子越少（用每顆粒子的大小亂數當門檻）
     vAlpha = aAlpha * smoothstep(aSeed - 0.06, aSeed, uAmount);
+    // 柔和的水氣：貼近鏡頭時會變成一大片模糊的霧，淡掉
+    if (uSoft > 0.5) vAlpha *= smoothstep(4.0, 14.0, -mv.z);
   }
 `;
 const FRAG = /* glsl */`

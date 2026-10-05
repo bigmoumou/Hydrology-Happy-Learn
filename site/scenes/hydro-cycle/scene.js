@@ -118,6 +118,103 @@ export async function createHydroCycle(container, opts = {}) {
   const rand = mulberry32(seed * 31 + 1);
   const nz2 = createNoise2D(mulberry32(seed + 99));
 
+  // ---------- 山區溪流：先決定水路、在地形刻出淺溪床（之後才建地表網格）----------
+  // D8 流向只有 8 個方向，在平整的坡面上會變成一條條平行直線。這裡把它磨圓、加上自然的蜿蜒，
+  // 再沿水路把地形往下刻一條淺溝，水面才會乖乖待在溪床裡。
+  const streamLines = [];
+  const streamMask = new Uint8Array(nx * nz);
+  const streamRef = new Int32Array(nx * nz).fill(-1);   // 溪床格子 → 第幾條溪 × 4096 + 第幾個點（漫地流粒子接到溪裡用）
+  {
+    const NN = nx * nz, A0 = 900;
+    const srand = mulberry32(seed * 7 + 3);
+    const isStream = new Uint8Array(NN);
+    for (let k = 0; k < NN; k++) if (acc[k] >= A0 && h[k] > 1.2 && !channelMask[k] && waterLevel[k] <= -999) isStream[k] = 1;
+    const hasUp = new Uint8Array(NN);
+    for (let k = 0; k < NN; k++) if (isStream[k] && dir[k] >= 0) hasUp[dir[k]] = 1;
+    const visited = new Uint8Array(NN);
+    const h0 = Float32Array.from(h);   // 刻溪床前的地形
+    const H0 = (x, z) => sampleBilinear(h0, nx, nz, (x - x0) / dx, (z - z0) / dx);
+    // 先把每條溪的格子追出來，再從長的開始畫（間距檢查時，大溪優先保留）
+    const cellLists = [];
+    for (let k0 = 0; k0 < NN; k0++) {
+      if (!isStream[k0] || hasUp[k0]) continue;
+      const cells = [];
+      let k = k0;
+      for (let st = 0; st < 3000; st++) {
+        cells.push(k);
+        if (visited[k]) break;
+        visited[k] = 1;
+        const d = dir[k];
+        if (d < 0) break;
+        if (channelMask[d] || h[d] < 0.05 || waterLevel[d] > -999) { cells.push(d); break; }
+        if (!isStream[d]) break;
+        k = d;
+      }
+      if (cells.length >= 10) cellLists.push(cells);
+    }
+    cellLists.sort((a, b) => b.length - a.length);
+    for (const cells of cellLists) {
+      let flat = [];
+      for (const c of cells) flat.push(X(c % nx), 0, Z((c / nx) | 0));
+      flat = Array.from(chaikin(Float32Array.from(flat), 4));
+      // 等距取樣
+      const base = [];
+      let s = 0;
+      for (let q = 0; q < flat.length / 3; q++) {
+        const x = flat[q * 3], z = flat[q * 3 + 2];
+        if (q > 0) s += Math.hypot(x - flat[q * 3 - 3], z - flat[q * 3 - 1]);
+        base.push({ x, z, s });
+      }
+      const L = s;
+      if (L < 5) continue;
+      const pts = [];
+      for (let t = 0; t <= L; t += 0.25) {
+        let lo = 0; while (lo < base.length - 2 && base[lo + 1].s < t) lo++;
+        const a = base[lo], b = base[lo + 1], f = (t - a.s) / Math.max(1e-6, b.s - a.s);
+        pts.push({ x: lerp(a.x, b.x, f), z: lerp(a.z, b.z, f), s: t, k: cells[Math.min(cells.length - 1, Math.round((t / L) * (cells.length - 1)))] });
+      }
+      // 蜿蜒：沿法向偏移。一個中波長的彎＋一個長波長的漂移（相鄰的溪才不會平行），振幅隨流量變大；
+      // 頭尾收斂，才接得上源頭和下游的河
+      const ph = srand() * 6.28, lam = 8 + srand() * 6, ph2 = srand() * 100, drift = (srand() - 0.5) * 2;
+      const off = pts.map((p, i) => {
+        const a = pts[Math.max(0, i - 2)], b = pts[Math.min(pts.length - 1, i + 2)];
+        const tx = b.x - a.x, tz = b.z - a.z, l = Math.hypot(tx, tz) || 1;
+        const env = smoothstep(0, 4, p.s) * smoothstep(0, 3, L - p.s);
+        const amp = (0.45 + 0.5 * smoothstep(A0, A0 * 6, acc[p.k])) * env;
+        const o = amp * (0.7 * Math.sin((p.s / lam) * 6.2832 + ph) + 0.6 * nz2(p.s * 0.12 + ph2, 3.7))
+          + drift * env * Math.sin(Math.min(1, p.s / L) * Math.PI) * 1.4;
+        return [-tz / l * o, tx / l * o];
+      });
+      pts.forEach((p, i) => { p.x += off[i][0]; p.z += off[i][1]; });
+      // 和已經畫好的溪靠太近（大半段都在 3 單位內）就不畫：一排平行的溪很假
+      const close = pts.filter((p) => streamLines.some((l2) => l2.some((q) => (q.x - p.x) ** 2 + (q.z - p.z) ** 2 < 9))).length;
+      if (close > pts.length * 0.45) continue;
+      // 溪床高度：沿線取原地形、只降不升；寬度隨流量
+      let lvl = Infinity;
+      for (const p of pts) {
+        lvl = Math.min(lvl, H0(p.x, p.z) - 0.04);
+        p.bed = lvl;
+        p.level = lvl + 0.02;
+        p.w = Math.min(0.3, 0.07 + 0.05 * Math.sqrt(acc[p.k] / A0));
+      }
+      // 刻溪床：中心比水面低一點，兩岸用拋物線接回原地形；岸邊顏色之後再加深
+      for (const [pi, p] of pts.entries()) {
+        const R = p.w + 0.7;
+        for (let j = Math.floor((p.z - R - z0) / dx); j <= Math.ceil((p.z + R - z0) / dx); j++)
+          for (let i = Math.floor((p.x - R - x0) / dx); i <= Math.ceil((p.x + R - x0) / dx); i++) {
+            if (i < 1 || j < 1 || i >= nx - 1 || j >= nz - 1) continue;
+            const d = Math.hypot(X(i) - p.x, Z(j) - p.z);
+            if (d > R) continue;
+            const kk = j * nx + i;
+            h[kk] = Math.min(h[kk], p.bed - 0.06 + (d / R) ** 2 * (0.06 + 0.4));
+            streamMask[kk] = Math.max(streamMask[kk], d < p.w + 0.2 ? 2 : 1);
+            if (d < p.w + 0.2 && streamRef[kk] < 0) streamRef[kk] = streamLines.length * 4096 + pi;
+          }
+      }
+      streamLines.push(pts);
+    }
+  }
+
   const waterNormal = makeWaterNormal();
   const detailNormal = makeDetailNormal();
   const puffTex = makePuffTexture();
@@ -180,6 +277,10 @@ export async function createHydroCycle(container, opts = {}) {
           * smoothstep(riverWAt(sMouth) + 3.5, riverWAt(sMouth) + 6, rd) * smoothstep(2.6, 4, cdist[k]) * (1 - smoothstep(cx - 9, cx - 6, x));
         tPaddy[k] = paddy * (waterLevel[k] > -999 ? 0 : 1);
       }
+      if (streamMask[k]) {
+        const bed = streamMask[k] === 2;
+        c.lerp(c2.copy(pal.wet).multiplyScalar(bed ? 0.7 : 0.85), bed ? 0.75 : 0.35);
+      }
       const occl = 0.42 + 0.58 * ao[k];
       tCol[k * 3] = c.r * occl; tCol[k * 3 + 1] = c.g * occl; tCol[k * 3 + 2] = c.b * occl;
     }
@@ -200,7 +301,8 @@ export async function createHydroCycle(container, opts = {}) {
       for (let i = Math.max(0, Math.floor((p.x - r - x0) / dx)); i <= Math.min(nx - 1, Math.ceil((p.x + r - x0) / dx)); i++) {
         const k = j * nx + i, below = p.level - h[k];
         if (below < -0.22) continue;
-        const mud = smoothstep(-0.22, -0.02, below), deep = smoothstep(0.0, 0.18, below);
+        const fall = 1 - smoothstep(p.r * 1.15, p.r * 1.6, Math.hypot(X(i) - p.x, Z(j) - p.z));   // 只在窪地周圍，不要染出方形
+        const mud = smoothstep(-0.22, -0.02, below) * fall, deep = smoothstep(0.0, 0.18, below) * fall;
         const n = 0.85 + 0.3 * (0.5 + 0.5 * nz2(X(i) * 0.9, Z(j) * 0.9));
         c.setRGB(tCol[k * 3], tCol[k * 3 + 1], tCol[k * 3 + 2]);
         c.lerp(c2.setRGB(0.2 * n, 0.19 * n, 0.13 * n), mud * 0.65).lerp(c2.setRGB(0.13, 0.12, 0.085), deep * 0.8);
@@ -208,7 +310,7 @@ export async function createHydroCycle(container, opts = {}) {
       }
   }
   // 聚落（公路、橋、房子）：先規劃，順便改地表顏色、清掉路和房子底下的水田
-  const village = planVillage(T, { H, slopeAt: (k) => 1 - tNor[k * 3 + 1], paddy: tPaddy, tCol, riverHalf: riverWAt(sMouth) });
+  const village = planVillage(T, { H, slopeAt: (k) => 1 - tNor[k * 3 + 1], paddy: tPaddy, tCol, riverHalf: riverWAt(sMouth), streamMask });
   const idx = new Uint32Array((nx - 1) * (nz - 1) * 6);
   let q = 0;
   for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
@@ -435,10 +537,10 @@ export async function createHydroCycle(container, opts = {}) {
   // uMode：0 靜水（窪地）、1 流動（河川、溪流，帶狀 uv：x 橫向、y 沿流向）、2 海洋
   const rainUniform = { value: 0 };
   const mouth = river.find((p) => p.s >= sMouth) || river[river.length - 1];
-  function waterMaterial({ mode = 0, shallow, deep, depthScale = 5, rough = 0.06, minA = 0.55, maxA = 0.93, edgeFoam = 0.6 }) {
+  function waterMaterial({ mode = 0, shallow, deep, depthScale = 5, rough = 0.06, minA = 0.55, maxA = 0.93, edgeFoam = 0.6, env = 1.25 }) {
     const m = new THREE.MeshStandardMaterial({
       color: 0xffffff, roughness: rough, metalness: 0, transparent: true, normalMap: waterNormal,
-      normalScale: new THREE.Vector2(0.45, 0.45), envMapIntensity: 1.25, depthWrite: true,
+      normalScale: new THREE.Vector2(0.45, 0.45), envMapIntensity: env, depthWrite: true,
     });
     const u = {
       uTime: timeUniform, uRain: rainUniform, uMode: { value: mode }, uDeep: { value: new THREE.Color(deep) }, uShallow: { value: new THREE.Color(shallow) },
@@ -597,47 +699,11 @@ export async function createHydroCycle(container, opts = {}) {
   riverMesh.renderOrder = creekMesh.renderOrder = 3;
   scene.add(riverMesh, creekMesh);
 
-  // 山區溪流網：沿 D8 流向、流量累積夠大的格子
+  // 山區溪流（水路在前面已經決定、溪床也刻好了）
   {
-    const A0 = 520;
-    const isStream = new Uint8Array(N);
-    for (let k = 0; k < N; k++) if (acc[k] >= A0 && h[k] > 1.2 && !channelMask[k] && waterLevel[k] <= -999) isStream[k] = 1;
-    const hasUp = new Uint8Array(N);
-    for (let k = 0; k < N; k++) if (isStream[k] && dir[k] >= 0) hasUp[dir[k]] = 1;
-    const visited = new Uint8Array(N);
-    const lines = [];
-    for (let k0 = 0; k0 < N; k0++) {
-      if (!isStream[k0] || hasUp[k0]) continue;
-      const cells = [];
-      let k = k0;
-      for (let st = 0; st < 3000; st++) {
-        cells.push(k);
-        if (visited[k]) break;
-        visited[k] = 1;
-        const d = dir[k];
-        if (d < 0) break;
-        if (channelMask[d] || h[d] < 0.05 || waterLevel[d] > -999) { cells.push(d); break; }
-        if (!isStream[d]) break;
-        k = d;
-      }
-      if (cells.length < 6) continue;
-      let flat = [];
-      for (const c of cells) { const i = c % nx, j = (c / nx) | 0; flat.push(X(i), h[c], Z(j)); }
-      flat = chaikin(Float32Array.from(flat), 2);
-      const pts = [];
-      let s = 0, lvl = Infinity;
-      for (let q2 = 0; q2 < flat.length / 3; q2++) {
-        const x = flat[q2 * 3], z = flat[q2 * 3 + 2];
-        if (q2 > 0) s += Math.hypot(x - flat[q2 * 3 - 3], z - flat[q2 * 3 - 1]);
-        const kk = Math.round((z - z0) / dx) * nx + Math.round((x - x0) / dx);
-        lvl = Math.min(lvl, H(x, z) + 0.05);
-        pts.push({ x, z, s, level: lvl, w: Math.min(0.34, 0.09 + 0.06 * Math.sqrt(acc[kk] / A0)) });
-      }
-      if (s > 2.5) lines.push(withFlow(pts, { vMin: 1.5, vMax: 6, foamK: 0.35 }));
-    }
-    const geos = lines.map((l) => ribbon(l, { extra: 0.06, yOff: 0.02 }));
+    const geos = streamLines.map((l) => ribbon(withFlow(l, { vMin: 1.5, vMax: 6, foamK: 0.35 }), { extra: 0.04, yOff: 0.02 }));
     if (geos.length) {
-      const streamMat = waterMaterial({ mode: 1, shallow: 0x5f8f86, deep: 0x2c5f66, minA: 0.75, maxA: 0.95, edgeFoam: 0.12 });
+      const streamMat = waterMaterial({ mode: 1, shallow: 0x3c5c52, deep: 0x1d3d42, minA: 0.88, maxA: 0.96, edgeFoam: 0.1, env: 0.35, rough: 0.25 });
       const streams = new THREE.Mesh(mergeGeometries(geos), streamMat);
       streams.renderOrder = 3;
       scene.add(streams);
@@ -664,7 +730,7 @@ export async function createHydroCycle(container, opts = {}) {
     scene.add(m);
   }
 
-  const villageApi = buildVillage(scene, village, { H, rainUniform });
+  const villageApi = buildVillage(scene, village);
 
   // ---------- 樹木：針葉、闊葉、檳榔、灌木 ----------
   const trees = [];
@@ -707,7 +773,7 @@ export async function createHydroCycle(container, opts = {}) {
       if (slope > 0.45) continue;
       if (rdist[k] < riverWAt(sMouth) + 1.6 && y < 12) continue;
       if (cdist[k] < 0.9) continue;
-      if (acc[k] > 520 && y > 1.2) continue; // 不長在溪溝正中
+      if (streamMask[k]) continue; // 不長在溪床與溪岸
       if (x > coast[Math.round(fj)] - 4) continue;
       if (village.built[k]) continue;
       const m = mount[k];
@@ -908,6 +974,7 @@ export async function createHydroCycle(container, opts = {}) {
         p.y = max(p.y, aDrop.w);
         float on = step(fract(aDrop.z * 97.0), uRain);
         vA = on * smoothstep(0.0, 0.05, f) * (1.0 - smoothstep(0.94, 1.0, f));
+        vA *= smoothstep(2.5, 9.0, length(cameraPosition - c));   // 貼近鏡頭的雨絲會變成模糊的粗柱，淡掉
         vUv = uv;
         gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
       }`,
@@ -973,8 +1040,21 @@ export async function createHydroCycle(container, opts = {}) {
       if (X(i) > coast[j] - 3) continue;
       const pts = [];
       let steps = 0, end = 'none';
+      let inStream = false;
       while (steps++ < 900) {
         const ii = k % nx, jj = (k / nx) | 0;
+        if (!inStream && streamRef[k] >= 0) {
+          // 流進溪床：接著沿這條溪蜿蜒的水路走到溪的出口，再從出口的格子繼續
+          const line = streamLines[(streamRef[k] / 4096) | 0], from = streamRef[k] % 4096;
+          for (let q = from; q < line.length; q += 2) pts.push(line[q].x, line[q].level + 0.07, line[q].z);
+          const e = line[line.length - 1];
+          k = Math.round((e.z - z0) / dx) * nx + Math.round((e.x - x0) / dx);
+          inStream = true;
+          if (channelMask[k]) { end = rdist[k] <= cdist[k] ? 'river' : 'creek'; break; }
+          if (waterLevel[k] > -999) { end = 'pond'; break; }
+          if (h[k] < 0.05) { end = 'sea'; break; }
+          continue;
+        }
         pts.push(X(ii), h[k] + 0.2, Z(jj));
         if (channelMask[k]) { end = rdist[k] <= cdist[k] ? 'river' : 'creek'; break; }
         if (waterLevel[k] > -999) { end = 'pond'; break; }

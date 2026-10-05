@@ -28,12 +28,14 @@ export function block(w, h, d, color, x = 0, y = 0, z = 0, r = 0, ry = 0) {
   return paint(g, color);
 }
 
-// 兩坡屋頂：屋脊沿 z 方向（along='z'）或 x 方向；底在 y、寬 w、深 d、屋脊高 ph
+// 兩坡屋頂：w = x 方向的寬、d = z 方向的深、屋脊高 ph；屋脊沿 z（along='z'）或沿 x（along='x'）
 export function gableRoof(w, d, ph, color, x = 0, y = 0, z = 0, along = 'z') {
+  // 三角形斷面的底邊 = 和屋脊垂直的那一邊；沿屋脊方向擠出
+  const base = along === 'x' ? d : w, len = along === 'x' ? w : d;
   const s = new THREE.Shape();
-  s.moveTo(-w / 2, 0); s.lineTo(w / 2, 0); s.lineTo(0, ph); s.lineTo(-w / 2, 0);
-  const g = new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: false });
-  g.translate(0, 0, -d / 2);
+  s.moveTo(-base / 2, 0); s.lineTo(base / 2, 0); s.lineTo(0, ph); s.lineTo(-base / 2, 0);
+  const g = new THREE.ExtrudeGeometry(s, { depth: len, bevelEnabled: false });
+  g.translate(0, 0, -len / 2);
   if (along === 'x') g.rotateY(Math.PI / 2);
   g.translate(x, y, z);
   return paint(g, color);
