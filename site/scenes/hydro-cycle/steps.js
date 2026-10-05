@@ -37,7 +37,7 @@ export const STEPS = [
   {
     id: 'interflow', zh: '中間流', en: 'interflow', kind: '液體傳輸',
     text: '滲入地表的水在還沒深達地下水位之前，就在淺層土壤中側向流動、流出進入河川。',
-    cam: [[-6, 26, 86], [-12, 2, 30]], flows: ['interflow'],
+    cam: [[-5, 12, 64], [0.5, 2.0, 38]], flows: ['interflow'],
   },
   {
     id: 'percolation', zh: '滲漏', en: 'percolation', kind: '通往地下水',
@@ -52,7 +52,7 @@ export const STEPS = [
   {
     id: 'exfiltration', zh: '出滲', en: 'exfiltration', kind: '液體傳輸',
     text: '當表層土壤乾燥時，土壤水份會由下層往上傳輸到地表。',
-    cam: [[30, 22, 82], [24, 2, 30]], flows: ['exfil'],
+    cam: [[29, 8.5, 58], [23.5, 2.0, 39]], flows: ['exfil'],
   },
   {
     id: 'evaporation', zh: '蒸發', en: 'evaporation', kind: '汽體傳輸',
@@ -66,6 +66,6 @@ export const STEPS = [
   },
   {
     // 互動實驗頁：退後一點，看得到實驗室和模型後方的科學家
-    id: 'lab', zh: '互動實驗', en: 'Lab', text: '', cam: [[86, 72, 258], [-4, -2, -6]], flows: 'all',
+    id: 'lab', zh: '互動實驗', en: 'Lab', text: '', cam: [[96, 86, 292], [-4, 8, -6]], flows: 'all',
   },
 ];

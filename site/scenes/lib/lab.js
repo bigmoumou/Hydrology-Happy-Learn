@@ -41,7 +41,8 @@ function limb(r0, r1, len, seg = 14) {
 }
 
 // 成人比例（身高 1.75 m 為基準）：頭約 1/7.5 身高、肩寬約 0.38 m、腿長約一半身高
-function makePerson(M, { coat = 0xf1f0ec, shirt = 0x8aa6c1, pants = 0x3b4150, skin = 0xd9ad8f, hair = 0x2a211c, style = 'short', glasses = false, h = 1.75, shoes = 0x2b2b2e, female = false } = {}) {
+// coatLen：外衣下襬在骨盆下多長（實驗袍約 0.5 m 到膝上；開襟衫約 0.1 m 到臀部）；badge：掛識別證
+function makePerson(M, { coat = 0xf1f0ec, shirt = 0x8aa6c1, pants = 0x3b4150, skin = 0xd9ad8f, hair = 0x2a211c, style = 'short', glasses = false, h = 1.75, shoes = 0x2b2b2e, female = false, coatLen = 0.5, badge = false } = {}) {
   const mat = (c, r = 0.75) => M(new THREE.MeshStandardMaterial({ color: c, roughness: r }));
   const mCoat = mat(coat, 0.85), mShirt = mat(shirt, 0.85), mPants = mat(pants, 0.82), mSkin = mat(skin, 0.62), mHair = mat(hair, 0.75), mShoe = mat(shoes, 0.5);
   mCoat.side = THREE.DoubleSide;
@@ -57,15 +58,22 @@ function makePerson(M, { coat = 0xf1f0ec, shirt = 0x8aa6c1, pants = 0x3b4150, sk
   torso.scale.z = 0.6; spine.add(torso);
   // 實驗袍：前方開襟、下襬到膝蓋上方、略往外散開
   const gap = 0.42;
-  const coatM = mesh(lathe([[hipR + 0.075, -0.5], [hipR + 0.04, -0.25], [hipR + 0.022, 0.0], [waist + 0.03, 0.2], [chestR + 0.018, 0.38], [chestR + 0.012, 0.46], [shW * 0.8, 0.53], [0.075, 0.585]], 32, gap / 2, Math.PI * 2 - gap), mCoat);
+  const flare = 0.075 * Math.min(1, coatLen / 0.5);
+  const coatM = mesh(lathe([[hipR + flare, -coatLen], ...(coatLen > 0.3 ? [[hipR + 0.04, -0.25]] : []), [hipR + 0.022, 0.0], [waist + 0.03, 0.2], [chestR + 0.018, 0.38], [chestR + 0.012, 0.46], [shW * 0.8, 0.53], [0.075, 0.585]], 32, gap / 2, Math.PI * 2 - gap), mCoat);
   coatM.scale.set(1.02, 1, 0.66); spine.add(coatM);
   // 翻領、口袋、筆
   for (const sd of [-1, 1]) {
     const lap = mesh(new RoundedBoxGeometry(0.045, 0.17, 0.01, 2, 0.004), mCoat);
     lap.position.set(sd * 0.055, 0.44, 0.098); lap.rotation.set(0.12, 0, sd * 0.3); spine.add(lap);
-    const pocket = mesh(new RoundedBoxGeometry(0.11, 0.12, 0.008, 2, 0.003), mCoat); pocket.position.set(sd * 0.11, -0.2, 0.118); spine.add(pocket);
+    if (coatLen > 0.3) { const pocket = mesh(new RoundedBoxGeometry(0.11, 0.12, 0.008, 2, 0.003), mCoat); pocket.position.set(sd * 0.11, -0.2, 0.118); spine.add(pocket); }
   }
-  const pen = mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.065, 6), mat(0x2f5f9e, 0.4)); pen.position.set(0.085, 0.36, 0.108); spine.add(pen);
+  if (coatLen > 0.3) { const pen = mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.065, 6), mat(0x2f5f9e, 0.4)); pen.position.set(0.085, 0.36, 0.108); spine.add(pen); }
+  if (badge) {   // 掛繩＋識別證
+    const strap = mat(0x2f5f9e, 0.6);
+    for (const sd of [-1, 1]) { const st = mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.24, 5), strap); st.position.set(sd * 0.04, 0.42, 0.1); st.rotation.z = sd * 0.25; spine.add(st); }
+    const card = mesh(new RoundedBoxGeometry(0.055, 0.08, 0.004, 1, 0.002), mat(0xf4f2ec, 0.4)); card.position.set(0, 0.27, 0.112); spine.add(card);
+    const stripe = mesh(new THREE.BoxGeometry(0.055, 0.015, 0.005), strap); stripe.position.set(0, 0.3, 0.113); spine.add(stripe);
+  }
   const chest = new THREE.Group(); chest.position.y = 0.47; spine.add(chest);
   const neck = new THREE.Group(); neck.position.y = 0.09; chest.add(neck);
   neck.add(mesh(limb(0.048, 0.05, 0.09), mSkin).translateY(0.08));
@@ -249,8 +257,8 @@ const ceilingTexture = () => canvasTex(256, 256, (g, W, H) => {
 // 背景是一張「固定鏡頭拍的實驗室照片」：自己的場景、自己的固定相機，每格重畫（人物才會動），
 // 用約 0.4 倍解析度畫、高斯模糊兩輪、蒙一層紙色霧，再當成主場景的背景。
 // 旋轉、縮放 3D 模型時只有模型會動，背景完全不動（使用者要求）。
-// 單位：公尺。相機在房間前方、離地 0.6 m，幾乎水平看向後牆：站著的人上半身會出現在模型上方。
-export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, blur = 0.95, haze = 0.15 }) {
+// 單位：公尺。相機在房間前方、站著的人的眼睛高度（1.5 m），略往下看：像站在實驗室裡看桌上的模型。
+export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, blur = 0.95, haze = 0.1 }) {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const roomEnv = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   pmrem.dispose();
@@ -258,8 +266,8 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
   scene.background = new THREE.Color(hazeColor);
   const g = new THREE.Group(); scene.add(g);
   const labCam = new THREE.PerspectiveCamera(42, 1, 0.1, 60);
-  labCam.position.set(0, 0.62, 6.2); labCam.lookAt(0, 1.0, 0);
-  const H = { uHazeCol: { value: new THREE.Color(hazeColor) }, uHaze: { value: new THREE.Vector4(labCam.position.x, labCam.position.z, 6.5, 13.0) } };
+  labCam.position.set(0, 1.5, 6.4); labCam.lookAt(0, 0.42, 0);
+  const H = { uHazeCol: { value: new THREE.Color(hazeColor) }, uHaze: { value: new THREE.Vector4(labCam.position.x, labCam.position.z, 7.0, 13.0) } };
   const M = (m) => { m.envMap = roomEnv; m.envMapIntensity = 0.55; return hazeOf(m, H); };
   const mat = (c, r = 0.7, extra = {}) => M(new THREE.MeshStandardMaterial({ color: c, roughness: r, ...extra }));
   const glow = (map, k = 0.85) => M(new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: k, roughness: 0.35 }));
@@ -364,7 +372,7 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
   }
 
   // ---- 左邊：控制台（電腦、三台螢幕）＋伺服器機櫃＋盆栽 ----
-  const DESK = { x: -3.3, z: 1.35, ry: Math.PI / 2 - 0.35 };
+  const DESK = { x: -2.3, z: 3.15, ry: Math.PI / 2 - 0.2 };
   const desk = new THREE.Group(); desk.position.set(DESK.x, 0, DESK.z); desk.rotation.y = DESK.ry; g.add(desk);
   {
     const dparts = [];
@@ -419,13 +427,14 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
   scene.add(hemi, key, fill);
 
   // ---------- 三位科學家 ----------
-  const A = makePerson(M, { coat: 0xedebe6, shirt: 0x6f8aa6, pants: 0x34394a, skin: 0xc29478, hair: 0x1f1a17, style: 'short', glasses: true, h: 1.76 });
-  const P2 = makePerson(M, { coat: 0xefede8, shirt: 0xa9b9a2, pants: 0x4a4540, skin: 0xdcb398, hair: 0x3b2a20, style: 'bun', h: 1.64, female: true });
-  const P3 = makePerson(M, { coat: 0xebe9e4, shirt: 0x7d8ea3, pants: 0x2f3440, skin: 0xae8166, hair: 0x241c18, style: 'short', h: 1.79 });
+  // A：淺藍襯衫＋深藍開襟衫（工程師）；P2：實驗袍、掛識別證；P3：實驗袍內搭深色毛衣、戴眼鏡
+  const A = makePerson(M, { coat: 0x2f3a4f, coatLen: 0.1, shirt: 0xdbe5ee, pants: 0x4a4a4c, skin: 0xc29478, hair: 0x1f1a17, style: 'short', glasses: true, h: 1.76 });
+  const P2 = makePerson(M, { coat: 0xefede8, shirt: 0xa9b9a2, pants: 0x4a4540, skin: 0xdcb398, hair: 0x3b2a20, style: 'bun', h: 1.64, female: true, badge: true });
+  const P3 = makePerson(M, { coat: 0xebe9e4, shirt: 0x3f4a5c, pants: 0x2f3440, skin: 0xae8166, hair: 0x241c18, style: 'short', glasses: true, h: 1.79 });
   // A：坐在左邊的控制台前；P2、P3：站在右後方，面向模型（畫面中央前方）討論
   A.root.position.set(0, 0, 0.67); A.root.rotation.y = Math.PI; desk.add(A.root);
-  P2.root.position.set(0.72, 0, 1.75); P2.root.rotation.y = -0.15;
-  P3.root.position.set(1.32, 0, 1.45); P3.root.rotation.y = -0.45;
+  P2.root.position.set(0.58, 0, -0.25); P2.root.rotation.y = -0.14;
+  P3.root.position.set(1.3, 0, -0.5); P3.root.rotation.y = -0.34;
   g.add(P2.root, P3.root);
   A.hips.position.y = 0.53;
   for (const lg of [A.LL, A.LR]) { lg.hp.rotation.x = -1.5; lg.kn.rotation.x = 1.45; lg.ft.rotation.x = 0.05; }
@@ -472,6 +481,8 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
     P3.L.sh.rotation.set(-0.35, 0, 0.1); P3.L.el.rotation.set(-1.35, 0, -0.35);
     P3.R.sh.rotation.set(-0.3 - 0.08 * pulse(t, 9, 1.5, 1.2, 0.4), 0, -0.12); P3.R.el.rotation.set(-1.4, 0, 0.4);
     for (const P of [A, P2, P3]) P.chest.scale.set(1, 1 + 0.008 * Math.sin(t * 1.5 + P.root.position.x), 1);
+    // 站著的人重心慢慢換腳：骨盆左右移、微微傾斜
+    for (const [P, ph] of [[P2, 0], [P3, 2.1]]) { const w = Math.sin(t * 0.21 + ph); P.hips.position.x = 0.018 * w; P.hips.rotation.z = (P === P2 ? 0.035 : -0.03) + 0.02 * w; P.spine.rotation.z = -0.015 * w; }
   }
   update(0);
 

@@ -60,5 +60,5 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"水文學自學：http://127.0.0.1:{PORT}/　（關閉這個視窗就停止）")
+    print(f"水文學：http://127.0.0.1:{PORT}/　（關閉這個視窗就停止）")
     srv.serve_forever()
