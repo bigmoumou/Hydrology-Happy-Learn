@@ -924,7 +924,7 @@ export async function createHydroCycle(container, opts = {}) {
     m.frustumCulled = false;
     return m;
   }
-  const cloudMat = billboardMaterial(`uniform sampler2D uTex; uniform float uOpacity; uniform vec3 uSun; varying vec2 vUv; varying vec4 vP; varying float vCy; varying float vNear;
+  const CLOUD_FRAG = `uniform sampler2D uTex; uniform float uOpacity, uDim; uniform vec3 uSun; uniform vec3 uTintC; varying vec2 vUv; varying vec4 vP; varying float vCy; varying float vNear;
     void main(){
       float a0 = vP.z * 6.2831; mat2 R = mat2(cos(a0), -sin(a0), sin(a0), cos(a0));
       float a = texture2D(uTex, R * (vUv - 0.5) + 0.5).a;
@@ -937,10 +937,12 @@ export async function createHydroCycle(container, opts = {}) {
       vec3 shade = mix(vec3(0.47, 0.52, 0.60), vec3(0.33, 0.37, 0.45), vP.y);
       vec3 col = mix(shade, vec3(0.92, 0.93, 0.94), lit * mix(0.45, 0.95, hgt));
       col += vec3(1.0, 0.97, 0.9) * pow(1.0 - nV.z, 3.0) * max(0.0, dot(nW, uSun)) * 0.25;
+      col = mix(col, col * uTintC, 1.0 - uDim);
       gl_FragColor = vec4(col, a * uOpacity * vNear);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
-    }`, { uOpacity: { value: 0.93 }, uSun: { value: sunDir.clone() } });
+    }`;
+  const cloudMat = billboardMaterial(CLOUD_FRAG, { uOpacity: { value: 0.93 }, uSun: { value: sunDir.clone() }, uDim: { value: 1 }, uTintC: { value: new THREE.Color(1, 1, 1) } });
   const cloudList = [];
   const clusters = [[-44, -12, 1.0], [-30, 12, 1.0], [-14, -22, 0.9], [-6, 18, 0.85], [6, -4, 0.7], [-50, 22, 0.8], [50, 6, 0.0], [44, -26, 0.0]];
   for (const [cx2, cz, storm] of clusters) {
@@ -956,6 +958,24 @@ export async function createHydroCycle(container, opts = {}) {
   const clouds = puffs(cloudList, cloudMat);
   clouds.renderOrder = 8;
   scene.add(clouds);
+  // 高一層的雲：比下層高約 12–18、較小較淡、往水平拉長（高積雲），讓天空有上下層次。
+  // 位置和下層的雲錯開，從側面、斜上方看都看得出兩層。
+  {
+    const hi = [], hiClusters = [[-38, 0], [-20, -10], [-4, 4], [16, 16], [28, -14], [-56, -30], [40, 26]];
+    for (const [cx2, cz] of hiClusters) {
+      const n = 12, ang = (rand() - 0.5) * 0.8;
+      for (let k = 0; k < n; k++) {
+        const along = (rand() - 0.5) * 16, across = (rand() - 0.5) * 4.5;
+        const px = cx2 + along * Math.cos(ang) - across * Math.sin(ang), pz = cz + along * Math.sin(ang) + across * Math.cos(ang);
+        hi.push({ c: [px, CLOUD_TOP + 4 + rand() * 4, pz], p: [4.5 + rand() * 4, 0.35, rand(), 0] });
+      }
+    }
+    // 偏藍灰、半透明：在淺色背景上也看得出來，又不會比下層的雨雲搶眼
+    const hiMat = billboardMaterial(CLOUD_FRAG, { uOpacity: { value: 0.78 }, uSun: { value: sunDir.clone() }, uDim: { value: 0 }, uTintC: { value: new THREE.Color(0.8, 0.85, 0.93) } });
+    const hiClouds = puffs(hi, hiMat);
+    hiClouds.renderOrder = 7;
+    scene.add(hiClouds);
+  }
 
   // ---------- 水氣（蒸發、蒸散）----------
   const vaporMat = billboardMaterial(`uniform sampler2D uTex; uniform float uEvap, uTransp; varying vec2 vUv; varying vec4 vP; varying float vF;
@@ -1399,7 +1419,7 @@ export async function createHydroCycle(container, opts = {}) {
     for (const f of Object.values(flows)) f.update(t);
     villageApi.update(t);
     treeLOD.update(camera.position);
-    if (labOn) { lab.update(t); lab.render(); }
+    if (labOn) lab.render(t);
   }
 
   // 左側面板遮住的寬度：把投影中心往右移，讓模型置中在可見區域

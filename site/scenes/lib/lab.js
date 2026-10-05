@@ -138,10 +138,8 @@ function makePerson(M, { coat = 0xf1f0ec, shirt = 0x8aa6c1, pants = 0x3b4150, sk
   };
   const LL = leg(1), LR = leg(-1);
   // 腳下的柔和陰影
-  const blob = new THREE.Mesh(new THREE.CircleGeometry(0.3, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.1, depthWrite: false }));
-  blob.position.y = 0.003; root.add(blob);
-  // 人會投影到地板上（實驗室的主光有陰影）
-  root.traverse((o) => { if (o.isMesh && o !== blob) { o.castShadow = true; o.receiveShadow = true; } });
+  // 背景會霧化，不需要陰影：人物不投影、也不接收陰影（省效能）
+  root.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
   // 預設站姿：手臂自然垂下、手肘微彎
   for (const [sd, a] of [[1, L], [-1, R]]) { a.sh.rotation.set(0.02, 0, sd * 0.07); a.el.rotation.set(-0.18, 0, 0); a.hand.rotation.set(0, sd * 0.3, 0); }
   return { root, body, hips, spine, chest, neck, head, L, R, LL, LR };
@@ -272,7 +270,7 @@ const ceilingTexture = () => canvasTex(256, 256, (g, W, H) => {
 // 用約 0.4 倍解析度畫、高斯模糊兩輪、蒙一層紙色霧，再當成主場景的背景。
 // 旋轉、縮放 3D 模型時只有模型會動，背景完全不動（使用者要求）。
 // 單位：公尺。相機在房間前方、站著的人的眼睛高度（1.5 m），略往下看：像站在實驗室裡看桌上的模型。
-export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, blur = 0.95, haze = 0.1 }) {
+export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, blur = 0.8, haze = 0.1 }) {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const roomEnv = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   pmrem.dispose();
@@ -306,9 +304,9 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
   floorMat.envMapIntensity = 0.4;   // 斜看地板時的反光不要太強，不然整片泛白、看不出是地板
   floorMat.customProgramCacheKey = () => 'lab-floor';
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(RW, front - back).rotateX(-Math.PI / 2), floorMat);
-  floor.position.set(0, 0, (front + back) / 2); floor.receiveShadow = true; g.add(floor);
+  floor.position.set(0, 0, (front + back) / 2); g.add(floor);
   const wallMat = mat(0xd9d0c1, 0.92);
-  const wall = (w, x, z, ry) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, RH), wallMat); m.position.set(x, RH / 2, z); m.rotation.y = ry; m.receiveShadow = true; g.add(m); };
+  const wall = (w, x, z, ry) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, RH), wallMat); m.position.set(x, RH / 2, z); m.rotation.y = ry; g.add(m); };
   wall(RW, 0, back, 0); wall(front - back, -RW / 2, (front + back) / 2, Math.PI / 2); wall(front - back, RW / 2, (front + back) / 2, -Math.PI / 2);
   const ceilT = ceilingTexture(); ceilT.wrapS = ceilT.wrapT = THREE.RepeatWrapping; ceilT.repeat.set(RW / 0.6, (front - back) / 0.6);
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(RW, front - back).rotateX(Math.PI / 2), mat(0xffffff, 0.9, { map: ceilT }));
@@ -322,11 +320,64 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
   // ---- 後牆：大螢幕（雷達回波＋流量歷線）、白板、書架、時鐘、百葉窗 ----
   const scr = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 1.63), glow(bigScreenTexture(), 0.95)); scr.position.set(0.15, 1.95, back + 0.065); g.add(scr);
   B(3.0, 1.73, 0.06, 0x2b2e33, 0.15, 1.95, back + 0.03, 0.01);   // 外框比螢幕面退後，避免兩個面搶深度而閃爍
-  const wb = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.95), M(new THREE.MeshStandardMaterial({ map: whiteboardTexture(), roughness: 0.35 }))); wb.position.set(-2.35, 1.6, back + 0.03); g.add(wb);
-  B(1.78, 1.03, 0.025, 0xb7b3ab, -2.35, 1.6, back + 0.012, 0.006); B(1.1, 0.025, 0.06, 0xb7b3ab, -2.35, 1.1, back + 0.04);
-  // 時鐘
-  CY(0.17, 0.17, 0.04, 0xf6f4ef, -2.35, 2.55, back + 0.03, 28); { const geo = new THREE.TorusGeometry(0.17, 0.012, 8, 28); geo.translate(-2.35, 2.55, back + 0.05); solid.push(paint(geo, 0x3a3d42)); }
-  B(0.012, 0.11, 0.01, 0x222222, -2.35, 2.59, back + 0.06, 0, 0); B(0.08, 0.012, 0.01, 0x222222, -2.31, 2.55, back + 0.06);
+  // 白板在左牆
+  { const wb = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.95), M(new THREE.MeshStandardMaterial({ map: whiteboardTexture(), roughness: 0.35 })));
+    wb.position.set(-RW / 2 + 0.03, 1.6, 0.9); wb.rotation.y = Math.PI / 2; g.add(wb);
+    B(0.025, 1.03, 1.78, 0xb7b3ab, -RW / 2 + 0.012, 1.6, 0.9, 0.006); }
+  // 時鐘（大螢幕右上方）
+  CY(0.17, 0.17, 0.04, 0xf6f4ef, 2.1, 2.62, back + 0.03, 28); { const geo = new THREE.TorusGeometry(0.17, 0.012, 8, 28); geo.translate(2.1, 2.62, back + 0.05); solid.push(paint(geo, 0x3a3d42)); }
+  B(0.012, 0.11, 0.01, 0x222222, 2.1, 2.66, back + 0.06, 0, 0); B(0.08, 0.012, 0.01, 0x222222, 2.14, 2.62, back + 0.06);
+
+  // ---- 伺服器區：大螢幕左邊一排三座 42U 機櫃（深色、網孔前門、一格格伺服器、閃爍的指示燈），上方走線架 ----
+  const racks = [], ledPos = [], ledCol = [], ledPh = [];
+  {
+    const RH2 = 2.05, RWd = 0.62, RD = 1.0, rz = back + 0.03 + RD / 2;
+    const xs = [-3.05, -2.4, -1.75];
+    for (const [ri, x] of xs.entries()) {
+      racks.push(block(RWd, RH2, RD, 0x24282e, x, RH2 / 2, rz, 0.015));                        // 機身
+      racks.push(block(RWd - 0.06, RH2 - 0.1, 0.01, 0x1b1e22, x, RH2 / 2, rz + RD / 2 + 0.004));  // 前門內側（深）
+      racks.push(block(0.02, 0.32, 0.02, 0x9aa0a6, x + RWd / 2 - 0.06, 1.15, rz + RD / 2 + 0.02, 0.006));   // 門把
+      racks.push(block(RWd, 0.06, RD, 0x30353c, x, RH2 + 0.03, rz, 0.01));                    // 頂蓋
+      // 一格格的伺服器（1U–2U，淺一點的面板），中間留幾格空位
+      let y = 0.12, k = 0;
+      while (y < RH2 - 0.15) {
+        const u = ((ri * 7 + k * 3) % 5 === 0) ? 0.088 : 0.044;
+        if ((ri * 5 + k * 7) % 11 !== 0) {
+          racks.push(block(RWd - 0.1, u - 0.006, 0.012, k % 3 === 0 ? 0x3a4048 : 0x343940, x, y + u / 2, rz + RD / 2 + 0.012));
+          // 每台伺服器 2–3 顆燈
+          const nL = 2 + (k % 2);
+          for (let l = 0; l < nL; l++) {
+            ledPos.push([x - RWd / 2 + 0.09 + l * 0.035, y + u / 2, rz + RD / 2 + 0.02]);
+            const r = (ri * 31 + k * 17 + l * 7) % 10;
+            ledCol.push(r < 6 ? [0.25, 1.0, 0.55] : r < 9 ? [0.3, 0.65, 1.0] : [1.0, 0.7, 0.2]);
+            ledPh.push(((ri * 13 + k * 29 + l * 11) % 97) / 97);
+          }
+        }
+        y += u; k++;
+      }
+    }
+    // 走線架（機櫃上方，沿牆）與垂下來的線束
+    racks.push(block(3.3, 0.04, 0.35, 0x8c9096, -2.4, 2.45, back + 0.4));
+    for (const x of [-3.9, -0.9]) racks.push(block(0.03, 0.62, 0.03, 0x8c9096, x, 2.76, back + 0.4));
+    for (const x of xs) racks.push(block(0.12, 0.36, 0.1, 0x2f5f9e, x - 0.12, 2.25, back + 0.38));
+    g.add(new THREE.Mesh(mergeAll(racks), mat(0xffffff, 0.42, { vertexColors: true })));
+    // 指示燈：每顆有自己的閃爍節奏
+    const lg = mergeAll(ledPos.map(([x, y, z]) => block(0.02, 0.012, 0.004, 0xffffff, x, y, z)));
+    const per = lg.attributes.position.count / ledPos.length;
+    const cols = new Float32Array(lg.attributes.position.count * 3), phs = new Float32Array(lg.attributes.position.count);
+    ledPos.forEach((_, i) => { for (let v = 0; v < per; v++) { cols.set(ledCol[i], (i * per + v) * 3); phs[i * per + v] = ledPh[i]; } });
+    lg.setAttribute('color', new THREE.BufferAttribute(cols, 3)); lg.setAttribute('aPh', new THREE.BufferAttribute(phs, 1));
+    const ledMat = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 } },
+      vertexShader: 'attribute float aPh; varying vec3 vC; varying float vPh; void main(){ vC = color; vPh = aPh; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `uniform float uTime; varying vec3 vC; varying float vPh;
+        void main(){ float f = fract(uTime * (0.6 + vPh * 1.8) + vPh); float on = vPh > 0.55 ? step(0.25, f) : 0.55 + 0.45 * step(0.5, f);
+          gl_FragColor = vec4(vC * (0.8 + 4.5 * on), 1.0); }`,
+      vertexColors: true,
+    });
+    const leds = new THREE.Mesh(lg, ledMat); g.add(leds);
+    racks.ledMat = ledMat;
+  }
   // 書架（後牆左端）：資料夾、書、收納盒
   {
     const x0 = -4.3, w = 1.3;
@@ -425,14 +476,29 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
     paint((() => { const c = new THREE.CylinderGeometry(0.025, 0.025, 0.36, 10); c.translate(0, 0.26, 0); return c; })(), 0x6f7378),
     ...[0, 1, 2, 3, 4].map((i) => block(0.03, 0.03, 0.3, 0x6f7378, Math.sin(i * 1.2566) * 0.15, 0.07, Math.cos(i * 1.2566) * 0.15, 0, i * 1.2566)),
   ]), mat(0xffffff, 0.65, { vertexColors: true })));
-  // 伺服器機櫃（左後角）
-  B(0.62, 2.0, 0.7, 0x3a3f46, -4.45, 1.0, back + 0.5, 0.02);
-  { const leds = []; for (let i = 0; i < 18; i++) leds.push(block(0.025, 0.012, 0.005, 0xffffff, -4.62 + (i % 6) * 0.06, 0.6 + Math.floor(i / 6) * 0.45, back + 0.86)); g.add(new THREE.Mesh(mergeAll(leds), M(new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0x3fbf7f, emissiveIntensity: 2.2 })))); }
-  for (let i = 0; i < 6; i++) B(0.56, 0.008, 0.01, 0x5a6068, -4.45, 0.35 + i * 0.3, back + 0.86);
+
+  // ---- 地上的光：窗外斜照進來的日光（一格格窗影）、天花板燈下的光暈。加法混合的透明平面，霧化後就是柔和的光斑 ----
+  {
+    const pool = (w, d, x, z, ry, color, k, grid = 0) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        uniforms: { uC: { value: new THREE.Color(color).multiplyScalar(k) }, uGrid: { value: grid } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: `uniform vec3 uC; uniform float uGrid; varying vec2 vUv;
+          void main(){ vec2 q = abs(vUv - 0.5) * 2.0;
+            float a = (1.0 - smoothstep(0.55, 1.0, q.x)) * (1.0 - smoothstep(0.45, 1.0, q.y));
+            if (uGrid > 0.5) { vec2 f = abs(fract(vUv * vec2(4.0, 2.0)) - 0.5); a *= smoothstep(0.42, 0.36, max(f.x, f.y) - 0.02); }
+            gl_FragColor = vec4(uC * a, 1.0); }`,
+      }));
+      m.position.set(x, 0.004, z); m.rotation.y = ry; g.add(m);
+    };
+    pool(2.6, 1.7, 2.7, -0.9, 0.35, 0xffe6c4, 0.32, 1);     // 窗影
+    for (const z of [-1.2, 1.2, 3.6]) pool(4.2, 1.6, 0, z, 0, 0xfff4e4, 0.08);   // 燈下的光暈
+  }
 
   // ---- 中景：儀器推車（兩層，放雨量計、記錄器、筆電）與實驗凳 ----
   {
-    const cx = -1.15, cz = -0.95;
+    const cx = -1.05, cz = -0.75;
     for (const y of [0.25, 0.85]) B(0.9, 0.03, 0.55, 0xc9ccd0, cx, y, cz, 0.008, 0, shiny);
     for (const [dx, dz] of [[-0.42, -0.25], [0.42, -0.25], [-0.42, 0.25], [0.42, 0.25]]) { CY(0.012, 0.012, 0.85, 0x8c9096, cx + dx, 0.47, cz + dz, 8, shiny); CY(0.03, 0.03, 0.04, 0x2b2b2e, cx + dx, 0.03, cz + dz, 10); }
     B(0.9, 0.025, 0.025, 0x8c9096, cx, 0.95, cz + 0.27, 0, 0, shiny);
@@ -454,20 +520,12 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
   CY(0.02, 0.02, 1.75, 0x6f7378, 4.6, 0.875, 2.2, 10); CY(0.2, 0.22, 0.03, 0x6f7378, 4.6, 0.02, 2.2, 16);
   B(0.3, 0.75, 0.12, 0xeceae5, 4.6, 1.3, 2.32, 0.03);
 
-  for (const [list, r] of [[solid, 0.68], [shiny, 0.25]]) {
-    const m = new THREE.Mesh(mergeAll(list), mat(0xffffff, r, { vertexColors: true }));
-    m.castShadow = true; m.receiveShadow = true; g.add(m);
-  }
-  desk.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  for (const [list, r] of [[solid, 0.68], [shiny, 0.25]]) g.add(new THREE.Mesh(mergeAll(list), mat(0xffffff, r, { vertexColors: true })));
 
   // 室內的光：柔和的天光＋左前上方的暖光＋窗戶那側的補光
   const hemi = new THREE.HemisphereLight(0xfff7ec, 0x9a8f80, 0.85);
   const key = new THREE.DirectionalLight(0xfff1de, 2.3); key.position.set(-2.5, 6.5, 5.5); key.target.position.set(0, 0, 1.2); scene.add(key.target);
-  key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
-  Object.assign(key.shadow.camera, { left: -6.5, right: 6.5, top: 6.5, bottom: -6.5, near: 1, far: 20 });
-  key.shadow.camera.updateProjectionMatrix();
-  key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02; key.shadow.radius = 5;
+  key.castShadow = false;   // 背景不算陰影
   const fill = new THREE.DirectionalLight(0xe8f0ff, 0.45); fill.position.set(5, 3, -1);
   scene.add(hemi, key, fill);
 
@@ -495,6 +553,7 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
   const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const pulse = (t, period, start, dur, ease = 0.8) => { const u = ((t - start) % period + period) % period; return sm(0, ease, u) * (1 - sm(dur - ease, dur, u)); };
   function update(t) {
+    racks.ledMat.uniforms.uTime.value = t;
     // A：打字；每 13 秒轉頭看一下模型
     const look = pulse(t, 13, 4, 3.4, 0.9);
     A.spine.rotation.set(0.2 - 0.08 * look, -0.4 * look, 0);
@@ -543,9 +602,17 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
     BLUR.uniforms.uHazeK.value = hk;
     renderer.setRenderTarget(dst); quad.render(renderer);
   }
-  function render() {
+  // 低耗能：用畫面 0.3 倍的解析度畫，而且每秒只重畫 15 次（人動得很慢，又霧化了，看不出差別）；
+  // 畫面大小或面板留白變了才立刻重畫。其他格直接沿用上一張。
+  let lastT = -1, lastKey = '';
+  function render(t = 0) {
     renderer.getDrawingBufferSize(size);
-    const w = Math.max(16, Math.round(size.x * 0.4)), h = Math.max(16, Math.round(size.y * 0.4));
+    const w = Math.max(16, Math.round(size.x * 0.3)), h = Math.max(16, Math.round(size.y * 0.3));
+    const v = camera.view && camera.view.enabled ? camera.view : null;
+    const key = `${w}x${h}|${camera.aspect.toFixed(4)}|${v ? v.offsetX.toFixed(1) : ''}`;
+    if (key === lastKey && lastT >= 0 && Math.abs(t - lastT) < 1 / 15) { mainScene.background = rtA.texture; return; }
+    lastKey = key; lastT = t;
+    update(t);
     if (rtA.width !== w || rtA.height !== h) { rtA.setSize(w, h); rtB.setSize(w, h); }
     // 固定相機：只跟主相機同步畫面比例與左右留白（面板遮住的區域），位置、方向永遠不變
     labCam.aspect = camera.aspect;
@@ -553,7 +620,6 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
     else labCam.clearViewOffset();
     labCam.updateProjectionMatrix();
     const prev = renderer.getRenderTarget();
-    renderer.shadowMap.needsUpdate = true;   // 只更新實驗室的陰影（主場景的陰影圖是靜態的，下一次 render 不受影響）
     renderer.setRenderTarget(rtA); renderer.render(scene, labCam);
     pass(rtA, rtB, blur, 0, 0); pass(rtB, rtA, 0, blur, 0);
     pass(rtA, rtB, blur * 2, 0, 0); pass(rtB, rtA, 0, blur * 2, haze);
