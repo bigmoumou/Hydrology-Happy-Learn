@@ -371,8 +371,9 @@ export function buildLab(mainScene, { renderer, camera, hazeColor = 0xeeebe4, bl
       uniforms: { uTime: { value: 0 } },
       vertexShader: 'attribute float aPh; varying vec3 vC; varying float vPh; void main(){ vC = color; vPh = aPh; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
       fragmentShader: `uniform float uTime; varying vec3 vC; varying float vPh;
-        void main(){ float f = fract(uTime * (0.6 + vPh * 1.8) + vPh); float on = vPh > 0.55 ? step(0.25, f) : 0.55 + 0.45 * step(0.5, f);
-          gl_FragColor = vec4(vC * (0.8 + 4.5 * on), 1.0); }`,
+        void main(){ float f = fract(uTime * (0.6 + vPh * 1.8) + vPh);
+          float on = vPh > 0.68 ? step(0.3, f) : (vPh > 0.4 ? 0.0 : 0.35 + 0.25 * step(0.5, f));   // 約三分之一的燈在閃、三分之一暗著
+          gl_FragColor = vec4(mix(vec3(0.08), vC * 1.6, on), 1.0); }`,
       vertexColors: true,
     });
     const leds = new THREE.Mesh(lg, ledMat); g.add(leds);

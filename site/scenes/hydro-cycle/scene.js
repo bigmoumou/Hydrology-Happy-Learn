@@ -958,16 +958,16 @@ export async function createHydroCycle(container, opts = {}) {
   const clouds = puffs(cloudList, cloudMat);
   clouds.renderOrder = 8;
   scene.add(clouds);
-  // 高一層的雲：比下層高約 12–18、較小較淡、往水平拉長（高積雲），讓天空有上下層次。
+  // 高一層的雲：緊貼在下層雨雲上方、較小較淡、往水平拉長（高積雲），讓天空有上下層次。
   // 位置和下層的雲錯開，從側面、斜上方看都看得出兩層。
   {
-    const hi = [], hiClusters = [[-38, 0], [-20, -10], [-4, 4], [16, 16], [28, -14], [-56, -30], [40, 26]];
+    const hi = [], hiClusters = [[-30, -6], [-2, 6], [22, -12], [-50, 20]];
     for (const [cx2, cz] of hiClusters) {
-      const n = 12, ang = (rand() - 0.5) * 0.8;
+      const n = 8, ang = (rand() - 0.5) * 0.8;
       for (let k = 0; k < n; k++) {
         const along = (rand() - 0.5) * 16, across = (rand() - 0.5) * 4.5;
         const px = cx2 + along * Math.cos(ang) - across * Math.sin(ang), pz = cz + along * Math.sin(ang) + across * Math.cos(ang);
-        hi.push({ c: [px, CLOUD_TOP + 4 + rand() * 4, pz], p: [4.5 + rand() * 4, 0.35, rand(), 0] });
+        hi.push({ c: [px, CLOUD_TOP + 1 + rand() * 2.5, pz], p: [4.5 + rand() * 4, 0.35, rand(), 0] });
       }
     }
     // 偏藍灰、半透明：在淺色背景上也看得出來，又不會比下層的雨雲搶眼
