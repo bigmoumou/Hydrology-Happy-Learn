@@ -212,10 +212,11 @@ export async function createReservoir(container, opts = {}) {
           gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }`,
       fragmentShader: `uniform float uTime; varying float vD; varying float vTop; varying float vX;
         void main(){ if (vTop <= 0.01) discard;
-          vec3 col = mix(vec3(0.10, 0.36, 0.44), vec3(0.01, 0.06, 0.11), smoothstep(0.0, 12.0, vD));
-          col += vec3(0.02, 0.05, 0.06) * (0.5 + 0.5 * sin(vX * 0.6 + vD * 0.5 + uTime * 0.4)) * exp(-vD * 0.25);
-          col = mix(col, vec3(0.6, 0.85, 0.92), 1.0 - smoothstep(0.0, 0.08, vD));
-          gl_FragColor = vec4(col, 0.86);
+          vec3 col = mix(vec3(0.13, 0.44, 0.50), vec3(0.03, 0.13, 0.19), smoothstep(0.0, 12.0, vD));
+          col += vec3(0.03, 0.07, 0.08) * (0.5 + 0.5 * sin(vX * 0.6 + vD * 0.5 + uTime * 0.4)) * exp(-vD * 0.2);
+          col = mix(col, vec3(0.62, 0.86, 0.93), 1.0 - smoothstep(0.0, 0.08, vD));
+          float a = max(mix(0.4, 0.8, smoothstep(0.0, 12.0, vD)), 1.0 - smoothstep(0.0, 0.08, vD));
+          gl_FragColor = vec4(col, a);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }`,

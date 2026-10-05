@@ -493,11 +493,14 @@ export async function createHydroCycle(container, opts = {}) {
     fragmentShader: `uniform float uTime; varying vec3 vPos;
       void main(){
         float d = -vPos.y;
-        vec3 col = mix(vec3(0.05, 0.27, 0.34), vec3(0.006, 0.04, 0.085), smoothstep(0.0, 14.0, d));
+        // 側面的海水：像水族箱的玻璃，淺處透明、看得到後面的海床，越深越不透明
+        vec3 col = mix(vec3(0.10, 0.42, 0.50), vec3(0.02, 0.12, 0.20), smoothstep(0.0, 14.0, d));
         float rays = 0.5 + 0.5 * sin(vPos.x * 0.6 + vPos.z * 0.6 + d * 0.35 + uTime * 0.35);
-        col += vec3(0.015, 0.04, 0.05) * rays * exp(-d * 0.22);
-        col = mix(col, vec3(0.55, 0.8, 0.9), 1.0 - smoothstep(0.0, 0.06, d));
-        gl_FragColor = vec4(col, 0.88);
+        col += vec3(0.03, 0.08, 0.09) * rays * exp(-d * 0.18);
+        col = mix(col, vec3(0.62, 0.86, 0.94), 1.0 - smoothstep(0.0, 0.06, d));
+        float a = mix(0.38, 0.8, smoothstep(0.0, 16.0, d));
+        a = max(a, 1.0 - smoothstep(0.0, 0.06, d));   // 水面那條亮線保持清楚
+        gl_FragColor = vec4(col, a);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
