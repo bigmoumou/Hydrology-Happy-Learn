@@ -397,10 +397,10 @@ export async function createHydroCycle(container, opts = {}) {
   // ---------- 切面（土層、地下水位）----------
   const strataMat = new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
-    uniforms: { uBottom: { value: bottom }, uTime: timeUniform, uGwHi: { value: 0 }, uUnsat: { value: 0 }, uFocusX: { value: -16 }, uLight: { value: 1.0 } },
+    uniforms: { uBottom: { value: bottom }, uTime: timeUniform, uGwHi: { value: 0 }, uUnsat: { value: 0 }, uFocusX: { value: -16 }, uLight: { value: 1.0 }, uGwRise: { value: 0 }, uSoilWet: { value: 0.25 } },
     vertexShader: `attribute float aSurf, aGwt, aSoil, aU; varying float vSurf, vGwt, vSoil, vU; varying vec3 vPos, vN;
       void main(){ vSurf = aSurf; vGwt = aGwt; vSoil = aSoil; vU = aU; vPos = position; vN = normal; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-    fragmentShader: `uniform float uBottom, uTime, uGwHi, uUnsat, uFocusX, uLight; varying float vSurf, vGwt, vSoil, vU; varying vec3 vPos, vN;
+    fragmentShader: `uniform float uBottom, uTime, uGwHi, uUnsat, uFocusX, uLight, uGwRise, uSoilWet; varying float vSurf, vGwt, vSoil, vU; varying vec3 vPos, vN;
       ${GLSL_NOISE}
       ${GLSL_FACE}
       vec2 hash22(vec2 p){ p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))); return fract(sin(p) * 43758.5453); }
@@ -453,24 +453,29 @@ export async function createHydroCycle(container, opts = {}) {
         vec3 topsoil = vec3(0.17, 0.105, 0.055) * (0.85 + 0.25 * grain);
         col = mix(col, topsoil, 1.0 - smoothstep(topT - 0.08, topT + 0.08, depth));
         // ---- 地下水 ----
-        float sat = smoothstep(vGwt + 0.04, vGwt - 0.08, y);
+        // 地下水位：補注多時往上升（不超過地表下 0.3）；海底下維持原狀
+        float gw = vSurf < 0.0 ? vGwt : min(vGwt + uGwRise, vSurf - 0.3);
+        // 土壤含水：雨水滲入後，地下水位以上的土層變深、偏冷
+        float moist = smoothstep(0.0, 0.25, depth) * smoothstep(gw - 0.05, gw + 0.3, y) * step(0.0, vSurf);
+        col = mix(col, col * vec3(0.56, 0.62, 0.78), moist * uSoilWet * 0.85);
+        float sat = smoothstep(gw + 0.04, gw - 0.08, y);
         vec2 pc = cellN(vec2(u, y) * 9.0);
         float pore = (1.0 - smoothstep(0.1, 0.2, pc.x)) * step(0.62, pc.y);   // 飽和層的孔隙水：圓點
         vec3 satCol = col * vec3(0.66, 0.82, 1.06) + vec3(0.0, 0.025, 0.08) + pore * vec3(0.04, 0.10, 0.2);
         float rockness = smoothstep(bedTop + 0.3, bedTop - 0.3, y);
         col = mix(col, satCol, sat * mix(0.9, 0.5, rockness));
         col += uGwHi * sat * vec3(0.0, 0.05, 0.12) * (0.55 + 0.45 * sin(uTime * 1.6 + u * 0.5 - y * 0.7));
-        float fringe = smoothstep(vGwt + 0.5, vGwt + 0.04, y) * (1.0 - sat);
+        float fringe = smoothstep(gw + 0.5, gw + 0.04, y) * (1.0 - sat);
         col = mix(col, col * vec3(0.86, 0.92, 1.02), fringe * 0.6);
         // 滲漏：未飽和層（表土以下、地下水位以上）亮起，濕潤紋一道道往下移動
         if (uUnsat > 0.001) {
-          float unsat = smoothstep(topT, topT + 0.12, depth) * smoothstep(vGwt - 0.02, vGwt + 0.12, y);
+          float unsat = smoothstep(topT, topT + 0.12, depth) * smoothstep(gw - 0.02, gw + 0.12, y);
           float near = 1.0 - smoothstep(4.0, 9.0, abs(u - uFocusX));
           float band = smoothstep(0.55, 1.0, sin((y + uTime * 0.9) * 5.0 + vnoise(vec2(u * 1.3, 2.0)) * 2.0));
           col = mix(col, col * 1.18 + vec3(0.02, 0.05, 0.10), unsat * uUnsat * 0.6);
           col += vec3(0.10, 0.30, 0.65) * band * unsat * near * uUnsat * 0.45;
         }
-        float wl = 1.0 - smoothstep(0.035, 0.09, abs(y - vGwt));
+        float wl = 1.0 - smoothstep(0.035, 0.09, abs(y - gw));
         col = mix(col, vec3(0.12, 0.58, 1.0), wl * step(0.0, depth - 0.05) * (1.0 + uUnsat * 0.0));
         col += vec3(0.10, 0.45, 1.0) * wl * uUnsat * 0.6 * step(0.0, depth - 0.05);
         col *= mix(0.8, 1.0, smoothstep(uBottom, uBottom + 10.0, y));
@@ -564,6 +569,8 @@ export async function createHydroCycle(container, opts = {}) {
   // ---------- 水面材質 ----------
   // uMode：0 靜水（窪地）、1 流動（河川、溪流，帶狀 uv：x 橫向、y 沿流向）、2 海洋
   const rainUniform = { value: 0 };
+  // 互動實驗的參數模擬：河水混濁程度（洪水）、窪地退水量
+  const floodUniform = { value: 0 }, pondDropUniform = { value: 0 };
   const mouth = river.find((p) => p.s >= sMouth) || river[river.length - 1];
   function waterMaterial({ mode = 0, shallow, deep, depthScale = 5, rough = 0.06, minA = 0.55, maxA = 0.93, edgeFoam = 0.6, env = 1.25 }) {
     const m = new THREE.MeshStandardMaterial({
@@ -574,17 +581,20 @@ export async function createHydroCycle(container, opts = {}) {
       uTime: timeUniform, uRain: rainUniform, uMode: { value: mode }, uDeep: { value: new THREE.Color(deep) }, uShallow: { value: new THREE.Color(shallow) },
       uMinA: { value: minA }, uMaxA: { value: maxA }, uDepthScale: { value: depthScale }, uEdge: { value: edgeFoam },
       uMouth: { value: new THREE.Vector2(mouth.x, mouth.z) }, uPlume: { value: new THREE.Color(0x8c9a6e) },
+      uFlood: floodUniform, uPondDrop: pondDropUniform,
     };
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = sh.vertexShader
         .replace('#include <common>', `#include <common>
           attribute float aDepth, aSpeed, aAcross, aFoam;
-          uniform float uTime, uMode;
+          uniform float uTime, uMode, uPondDrop;
           varying float vDepth, vSpeed, vAcross, vFoam;
           varying vec3 vWP;`)
         .replace('#include <begin_vertex>', `#include <begin_vertex>
           vDepth = aDepth; vSpeed = aSpeed; vAcross = aAcross; vFoam = aFoam;
+          // 窪地：水面跟著退水量下降（水深屬性是 3 × 實際水深）
+          if (uMode < 0.5) { transformed.y -= uPondDrop * 0.2; vDepth -= uPondDrop * 0.6; }
           vWP = (modelMatrix * vec4(position, 1.0)).xyz;
           if (uMode > 1.5) {
             float sw = smoothstep(0.3, 2.5, aDepth);
@@ -592,7 +602,7 @@ export async function createHydroCycle(container, opts = {}) {
           }`);
       sh.fragmentShader = sh.fragmentShader
         .replace('#include <common>', `#include <common>
-          uniform float uTime, uMode, uMinA, uMaxA, uDepthScale, uRain, uEdge;
+          uniform float uTime, uMode, uMinA, uMaxA, uDepthScale, uRain, uEdge, uFlood;
           uniform vec3 uDeep, uShallow, uPlume;
           uniform vec2 uMouth;
           varying float vDepth, vSpeed, vAcross, vFoam;
@@ -622,7 +632,11 @@ export async function createHydroCycle(container, opts = {}) {
             vec2 fp = vec2(vNormalMapUv.x * 7.0, vNormalMapUv.y * 3.5 - uTime * vSpeed * 1.6);
             float n = vnoise(fp) * 0.6 + vnoise(fp * 2.3) * 0.4;
             float edge = 1.0 - smoothstep(0.0, 0.2, min(vAcross, 1.0 - vAcross));
-            foam = clamp(vFoam * smoothstep(0.4, 0.8, n) * 1.1 + edge * smoothstep(0.45, 0.8, n) * uEdge, 0.0, 1.0);
+            foam = clamp(vFoam * smoothstep(0.4, 0.8, n) * (1.1 + 0.5 * uFlood) + edge * smoothstep(0.45, 0.8, n) * (uEdge + 0.2 * uFlood), 0.0, 1.0);
+            // 洪水：河水夾帶泥沙變成土黃色
+            base = mix(base, vec3(0.50, 0.37, 0.19) * (0.85 + 0.25 * n), uFlood * 0.92);
+            foam *= 1.0 - 0.45 * uFlood;
+            alpha = mix(alpha, 0.97, uFlood);
           } else if (uMode > 1.5) {
             // 海：碎浪一道道往岸邊推、河口有混濁的出流
             float shore = 1.0 - smoothstep(0.0, 2.2, vDepth);
@@ -630,13 +644,13 @@ export async function createHydroCycle(container, opts = {}) {
             float bands = smoothstep(0.82, 1.0, wv) * (0.6 + 0.4 * vnoise(vWP.xz * 1.5 + uTime * 0.2));
             foam = shore * bands + (1.0 - smoothstep(0.0, 0.22, vDepth)) * (0.55 + 0.45 * vnoise(vWP.xz * 2.0 + uTime * 0.3));
             float pl = exp(-length(vWP.xz - uMouth) / 8.0) * (1.0 - smoothstep(1.5, 7.0, vDepth));
-            base = mix(base, uPlume, pl * 0.7);
+            base = mix(base, mix(uPlume, vec3(0.55, 0.46, 0.30), uFlood), pl * (0.7 + 0.25 * uFlood));
           }
           diffuseColor.rgb = mix(base, vec3(0.93, 0.96, 0.96), foam * 0.85);
           diffuseColor.a = max(alpha, foam * 0.92);
           if (uMode > 0.5 && uMode < 1.5) diffuseColor.a *= 1.0 - smoothstep(-1.0, 2.5, vWP.x - uMouth.x);
           if (diffuseColor.a < 0.02) discard;`)
-        .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.75, foam);')
+        .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.75, foam);\nif (uMode > 0.5 && uMode < 1.5) roughnessFactor = mix(roughnessFactor, 0.45, uFlood);')
         .replace('vec3 mapN = texture2D( normalMap, vNormalMapUv ).xyz * 2.0 - 1.0;', `
           vec3 mapN;
           if (uMode > 0.5 && uMode < 1.5) {
@@ -1351,6 +1365,11 @@ export async function createHydroCycle(container, opts = {}) {
     rainUniform.value = Math.min(1, rainMat.uniforms.uRain.value);
     vaporMat.uniforms.uEvap.value = base.evap * (gains.evap ?? 1);
     vaporMat.uniforms.uTransp.value = base.transp * (gains.transp ?? 1);
+    // 互動實驗才有的：土壤濕度、地下水位上升、河水混濁、窪地水量（沒有模擬時用平常的樣子）
+    strataMat.uniforms.uSoilWet.value = gains.soilWet ?? 0.25;
+    strataMat.uniforms.uGwRise.value = (gains.gwRise ?? 0) * 1.6;
+    floodUniform.value = gains.flood ?? 0;
+    pondDropUniform.value = 1 - (gains.pond ?? 1);
   }
 
   const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);

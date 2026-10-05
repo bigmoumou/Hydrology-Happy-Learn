@@ -18,6 +18,7 @@ export function simulate({ i, tr, f, Se }, o = {}) {
   const n = Math.round(T / dt) + 1;
   const t = new Float32Array(n), rain = new Float32Array(n), infl = new Float32Array(n), ex = new Float32Array(n);
   const qs = new Float32Array(n), qi = new Float32Array(n), qg = new Float32Array(n), rech = new Float32Array(n);
+  const sw = new Float32Array(n), ss = new Float32Array(n), sg = new Float32Array(n);   // 土壤含水比例、地表暫存比例、地下水蓄量
   let Ss = 0, soil = 0, Sq = 0, Si = 0, Sg = q0 * kg;
   const Sg0 = Sg;
   const tot = { P: 0, Ia: 0, INF: 0, Q: 0, INT: 0, G: 0 };
@@ -29,7 +30,8 @@ export function simulate({ i, tr, f, Se }, o = {}) {
     rain[k] = r;
     let rr = r * dt;
     const toS = Math.min(rr, Sc - Ss); Ss += toS; rr -= toS;
-    const inf = Math.min(rr, f * dt);
+    // 這一步裡剛填滿地表暫存的話，只有剩下的時間能入滲（讓 F 剛好等於 f × (tr − Sc / i)）
+    const inf = Math.min(rr, f * dt * (r > 0 ? rr / (r * dt) : 0));
     const e = rr - inf;
     const toSoil = Math.min(inf, Math.max(0, Se - soil));
     soil += toSoil;
@@ -39,6 +41,7 @@ export function simulate({ i, tr, f, Se }, o = {}) {
     Sq -= os; Si -= oi; Sg -= og;
     infl[k] = inf / dt; ex[k] = e / dt; rech[k] = drain / dt;
     qs[k] = os / dt; qi[k] = oi / dt; qg[k] = og / dt;
+    sw[k] = soil / Se; ss[k] = Ss / Sc; sg[k] = Sg;
     tot.P += r * dt; tot.INF += inf; tot.Q += e; tot.INT += oi; tot.G += og;
     if (tk < tr) { F_tr = tot.INF; Ss_tr = Ss; }
   }
@@ -50,27 +53,34 @@ export function simulate({ i, tr, f, Se }, o = {}) {
   const caseId = overland ? (sub ? 'd' : 'c') : (sub ? 'b' : 'a');
   let peak = 0, tPeak = 0;
   for (let k = 0; k < n; k++) { const q = qs[k] + qi[k] + qg[k]; if (q > peak) { peak = q; tPeak = t[k]; } }
-  return { t, rain, infl, ex, rech, qs, qi, qg, dt, T, tot: { ...tot, dSg, F, Sg0 }, overland, sub, caseId, peak, tPeak, params: { i, tr, f, Se, Sc } };
+  return { t, rain, infl, ex, rech, qs, qi, qg, sw, ss, sg, dt, T, tot: { ...tot, dSg, F, Sg0 }, overland, sub, caseId, peak, tPeak, params: { i, tr, f, Se, Sc } };
 }
 
-// 某一時刻各過程的相對強度（0–1），給 3D 場景用
+// 某一時刻各過程的強度（0–1），給 3D 場景用。
+// 用固定的尺度換算（不是每場雨各自正規化），所以雨下得越大、3D 裡的水就越多。
 export function intensities(sim, tau) {
   const k = Math.max(0, Math.min(sim.t.length - 1, Math.round(tau / sim.dt)));
-  const max = (a) => { let m = 1e-9; for (const v of a) if (v > m) m = v; return m; };
-  sim._max ??= { qs: max(sim.qs), qi: max(sim.qi), rech: max(sim.rech), qg: max(sim.qg) };
-  const M = sim._max;
+  const { i, f, tr } = sim.params;
+  const c = (v) => Math.min(1, Math.max(0, v));
   const raining = sim.rain[k] > 0;
-  const sinceRain = sim.t[k] - sim.params.tr;
+  const sinceRain = sim.t[k] - tr;
+  const q = sim.qs[k] + sim.qi[k] + sim.qg[k];
+  // 窪地的水：雨一開始被截留＋窪蓄接住而漲起來，雨停後慢慢蒸發退回去（迴圈頭尾接得起來）
+  const dry = 0.3, dryOut = 1 - (sinceRain > 0 ? Math.min(1, Math.max(0, (sinceRain - 3) / (sim.T - tr - 5))) : 0);
   return {
-    rain: raining ? 0.12 + 0.88 * Math.min(1, sim.params.i / 70) : 0,
-    infil: raining ? Math.min(1, 0.25 + sim.infl[k] / Math.max(1, sim.params.f)) : 0,
-    overland: sim.overland ? Math.min(1, (sim.qs[k] / M.qs) * 1.2) : 0,
-    interflow: sim.sub ? Math.min(1, (sim.qi[k] / M.qi) * 1.3) : 0,
-    perc: sim.sub ? Math.min(1, sim.rech[k] / M.rech + (raining ? 0.15 : 0)) : 0,
-    gw: 0.35 + 0.65 * Math.min(1, (sim.qg[k] - sim.qg[0]) / Math.max(1e-6, M.qg - sim.qg[0])),
+    rain: raining ? 0.12 + 0.88 * Math.min(1, i / 70) : 0,
+    infil: raining ? c(0.25 + Math.min(i, f) / 40) : 0,
+    overland: c(Math.pow(sim.qs[k] / 20, 0.7)),
+    interflow: c(Math.pow(sim.qi[k] / 3, 0.7)),
+    perc: c(Math.pow(sim.rech[k] / 15, 0.7)),
+    gw: 0.35 + 0.65 * c((sim.qg[k] - sim.qg[0]) / 0.3),
     drip: raining ? 1 : 0,
-    exfil: sinceRain > 6 ? Math.min(1, (sinceRain - 6) / 6) : 0,
-    evap: raining ? 0.15 : Math.min(1, 0.3 + sinceRain / 8),
-    transp: raining ? 0.1 : Math.min(1, 0.3 + sinceRain / 8),
+    exfil: sinceRain > 6 ? c((sinceRain - 6) / 6) : 0,
+    evap: raining ? 0.15 : c(0.3 + sinceRain / 8),
+    transp: raining ? 0.1 : c(0.3 + sinceRain / 8),
+    soilWet: c(sim.sw[k]),
+    gwRise: c((sim.sg[k] - sim.tot.Sg0) / 20),
+    flood: c(Math.pow(Math.max(0, q - sim.qg[0]) / 25, 0.8)),
+    pond: dry + (1 - dry) * c(sim.ss[k]) * dryOut,
   };
 }

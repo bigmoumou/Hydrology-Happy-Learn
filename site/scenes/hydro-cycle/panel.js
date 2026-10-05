@@ -11,7 +11,7 @@ const HORTON = [
 ];
 const esc = (t) => t.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 2, initial = {} }) {
+export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 1.5, initial = {} }) {
   phys.innerHTML = `
     <header class="phys__head">
       <p class="phys__eyebrow">PARAMETERS · 教學示意模型</p>
@@ -28,6 +28,7 @@ export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 2, initia
       <h4><span class="ph__no">02</span>土壤 <em>soil</em></h4>
       <div class="sl"><label>入滲容量 <var>f</var></label><output data-o="f"></output><input type="range" data-k="f" min="2" max="60" step="1" aria-label="入滲容量 f"></div>
       <div class="sl"><label>土壤水份有效容量 <var>S</var><sub>e</sub></label><output data-o="Se"></output><input type="range" data-k="Se" min="10" max="200" step="5" aria-label="土壤水份有效容量"></div>
+      <p class="ph__derived" data-o="F"></p>
       <ul class="checks" data-o="checks"></ul>
       <div class="horton" aria-label="Horton 四種情況（課本圖 2-12）">${HORTON.map(([id, cap, d]) => `
         <figure data-case="${id}"><svg viewBox="0 0 42 26" aria-hidden="true">
@@ -61,6 +62,15 @@ export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 2, initia
     sim = simulate(P);
     const T = sim.tot;
     q('[data-o="P"]').innerHTML = `降雨量 <var>P</var> = <var>i</var> × <var>t</var><sub>r</sub> = ${P.i} × ${P.tr} = <b>${fmt(T.P)} mm</b>`;
+    // 累積入滲量 F：降雨期間滲進土壤的總水深。一開始的 Sc 先被截留＋窪蓄接住；之後每小時最多滲 min(i, f)
+    const Sc = sim.params.Sc;
+    q('[data-o="F"]').innerHTML = T.P <= Sc
+      ? `累積入滲量 <var>F</var> = 0（雨量不到 <var>S</var><sub>c</sub> = ${Sc} mm，全被截留＋窪蓄接住）`
+      : P.i > P.f
+        ? `累積入滲量 <var>F</var> = <var>f</var> × (<var>t</var><sub>r</sub> − <var>S</var><sub>c</sub> ÷ <var>i</var>) = ${P.f} × (${P.tr} − ${Sc} ÷ ${P.i}) = <b>${fmt(T.F)} mm</b>
+           <span class="ph__note">雨比土壤吸得快，每小時只滲得進 <var>f</var>；<var>S</var><sub>c</sub> = ${Sc} mm 是一開始被截留＋窪蓄接住的雨</span>`
+        : `累積入滲量 <var>F</var> = <var>P</var> − <var>S</var><sub>c</sub> = ${fmt(T.P)} − ${Sc} = <b>${fmt(T.F)} mm</b>
+           <span class="ph__note">雨沒有土壤吸得快，全部滲得進去；<var>S</var><sub>c</sub> = ${Sc} mm 是一開始被截留＋窪蓄接住的雨</span>`;
     q('[data-o="checks"]').innerHTML = `
       <li class="${sim.overland ? 'yes' : 'no'}"><span><span class="math">i = ${P.i} ${sim.overland ? '>' : '≤'} f = ${P.f}</span>：${sim.overland ? '雨下得比土壤吸得快，<b>產生漫地流</b>' : '雨水全部來得及入滲，不產生漫地流'}</span></li>
       <li class="${sim.sub ? 'yes' : 'no'}"><span><span class="math">F = ${fmt(T.F)} ${sim.sub ? '>' : '≤'} S<sub>e</sub> = ${P.Se}</span>：${sim.sub ? '土壤裝滿了，<b>產生中間流與新增地下水</b>' : '入滲的水都被土壤留住'}</span></li>`;
@@ -162,19 +172,27 @@ export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 2, initia
     g.beginPath(); g.moveTo(x, top); g.lineTo(x, h - bot); g.stroke();
   }
 
+  // 3D 的強度平滑地跟上模型（雨開始、停止時淡入淡出，不會一閃一閃）
+  const cur = {};
+  let lastNow = 0;
   function tick() {
     raf = requestAnimationFrame(tick);
     const api = getApi();
     if (!api || !sim) return;
     const tau = (api.time * hoursPerSec) % sim.T;
-    if (q('input[data-k="sim"]').checked) api.setGains(intensities(sim, tau));
+    const now = performance.now(), dtR = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 1; lastNow = now;
+    if (q('input[data-k="sim"]').checked) {
+      const target = intensities(sim, tau);
+      for (const [k, v] of Object.entries(target)) cur[k] = cur[k] === undefined ? v : cur[k] + (v - cur[k]) * Math.min(1, dtR * 3.5);
+      api.setGains(cur);
+    }
     if (chart) drawFrame(tau);
   }
 
   recompute();
   return {
     start() { if (!running) { running = true; recompute(); tick(); } },
-    stop() { running = false; cancelAnimationFrame(raf); getApi()?.clearGains(); },
+    stop() { running = false; cancelAnimationFrame(raf); for (const k of Object.keys(cur)) delete cur[k]; lastNow = 0; getApi()?.clearGains(); },
     redraw() { if (chart && sim) { drawStatic(); } },
     set(k, v) { if (!(k in unit)) return; P[k] = v; const inp = q(`input[data-k="${k}"]`); inp.value = v; q(`output[data-o="${k}"]`).textContent = unit[k](+(+v).toFixed(k === 'tr' ? 1 : 0)); recompute(); },
     reset() { Object.assign(P, DEFAULTS); for (const k of Object.keys(unit)) { q(`input[data-k="${k}"]`).value = P[k]; q(`output[data-o="${k}"]`).textContent = unit[k](P[k]); } recompute(); },
