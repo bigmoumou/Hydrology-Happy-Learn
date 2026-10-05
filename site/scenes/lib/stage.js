@@ -188,7 +188,7 @@ export function strataMaterial({ bottom, timeUniform }) {
       ${GLSL_NOISE}
       void main(){
         float y = vPos.y, u = vU, depth = vSurf - y;
-        float grain = hash12(floor(vec2(u, y) * 40.0));
+        float grain = vnoise(vec2(u, y) * 40.0) * 0.7 + vnoise(vec2(u, y) * 97.0) * 0.3;
         float yb = y + 0.7 * (fbm2(vec2(u * 0.035, 1.7)) - 0.5) * 2.0 + 0.25 * sin(u * 0.09);
         float bi = floor(yb / 2.1), bf = fract(yb / 2.1), br = hash12(vec2(bi, 7.0));
         vec3 alluv;
@@ -277,19 +277,21 @@ export function addPlinth(scene, { x0, x1, z0, z1, bottom, margin = 2.6, height 
         }`);
   };
   const plinth = new THREE.Mesh(new RoundedBoxGeometry(w, height, d, 4, Math.min(0.9, height * 0.28)), mat);
-  plinth.position.set(cx, bottom - height / 2 + 0.02, cz);
+  plinth.position.set(cx, bottom - (height + 0.3) / 2 + 0.02, cz);
+  plinth.scale.y = (height + 0.3) / height;
   plinth.castShadow = true; plinth.receiveShadow = true;
   scene.add(plinth);
   const floorY = bottom - height;
   const catcher = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), new THREE.ShadowMaterial({ opacity: 0.16 }));
-  catcher.rotation.x = -Math.PI / 2; catcher.position.y = floorY - 0.02; catcher.receiveShadow = true;
+  catcher.rotation.x = -Math.PI / 2; catcher.position.y = floorY - 0.3; catcher.receiveShadow = true;
   scene.add(catcher);
   const contact = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
     fragmentShader: 'varying vec2 vUv; void main(){ vec2 d = abs(vUv - 0.5) * 2.0; float r = max(d.x, d.y); gl_FragColor = vec4(0.0, 0.0, 0.0, 0.42 * (1.0 - smoothstep(0.80, 1.0, r))); }',
   }));
-  contact.rotation.x = -Math.PI / 2; contact.scale.set(w * 1.08, d * 1.16, 1); contact.position.set(cx, floorY - 0.01, cz);
+  contact.rotation.x = -Math.PI / 2; contact.scale.set(w * 1.08, d * 1.16, 1); contact.position.set(cx, floorY - 0.1, cz);
+  contact.renderOrder = -1; catcher.renderOrder = -2;
   scene.add(contact);
   return { plinth, floorY };
 }

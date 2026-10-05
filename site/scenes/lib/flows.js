@@ -13,7 +13,7 @@ const VERT = /* glsl */`
   void main() {
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = uSize * aSize * uScale / -mv.z;
+    gl_PointSize = min(uSize * aSize * uScale / -mv.z, uScale * 0.014);
     // 流量越小，看得到的粒子越少（用每顆粒子的大小亂數當門檻）
     vAlpha = aAlpha * smoothstep(aSeed - 0.06, aSeed, uAmount);
     // 柔和的水氣：貼近鏡頭時會變成一大片模糊的霧，淡掉

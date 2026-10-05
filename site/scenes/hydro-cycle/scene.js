@@ -243,7 +243,7 @@ export async function createHydroCycle(container, opts = {}) {
       const il = 1 / Math.hypot(gx, 1, gz);
       const ny = il;
       tNor[k * 3] = -gx * il; tNor[k * 3 + 1] = ny; tNor[k * 3 + 2] = -gz * il;
-      tUv[k * 2] = x * 0.35; tUv[k * 2 + 1] = z * 0.35;
+      tUv[k * 2] = x * 0.85; tUv[k * 2 + 1] = z * 0.85;
       const slope = 1 - ny;
       const n = 0.5 + 0.5 * nz2(x * 0.09, z * 0.09);
       const n2 = 0.5 + 0.5 * nz2(x * 0.31 + 20, z * 0.31);
@@ -311,6 +311,17 @@ export async function createHydroCycle(container, opts = {}) {
   }
   // 聚落（公路、橋、房子）：先規劃，順便改地表顏色、清掉路和房子底下的水田
   const village = planVillage(T, { H, slopeAt: (k) => 1 - tNor[k * 3 + 1], paddy: tPaddy, tCol, riverHalf: riverWAt(sMouth), streamMask });
+  for (const k of village.touched) {
+    const i = k % nx, j = (k / nx) | 0;
+    tPos[k * 3 + 1] = h[k];
+    for (const kk of [k, k - 1, k + 1, k - nx, k + nx]) {
+      const ii = kk % nx, jj = (kk / nx) | 0;
+      if (ii < 1 || jj < 1 || ii >= nx - 1 || jj >= nz - 1) continue;
+      const gx = (h[kk + 1] - h[kk - 1]) / (2 * dx), gz = (h[kk + nx] - h[kk - nx]) / (2 * dx), il = 1 / Math.hypot(gx, 1, gz);
+      tNor[kk * 3] = -gx * il; tNor[kk * 3 + 1] = il; tNor[kk * 3 + 2] = -gz * il;
+    }
+    void i; void j;
+  }
   const idx = new Uint32Array((nx - 1) * (nz - 1) * 6);
   let q = 0;
   for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
@@ -327,7 +338,7 @@ export async function createHydroCycle(container, opts = {}) {
   tGeo.computeBoundingSphere();
 
   const terrainMat = new THREE.MeshStandardMaterial({
-    vertexColors: true, roughness: 0.94, metalness: 0, normalMap: detailNormal, normalScale: new THREE.Vector2(0.5, 0.5),
+    vertexColors: true, roughness: 0.94, metalness: 0, normalMap: detailNormal, normalScale: new THREE.Vector2(0.32, 0.32),
   });
   terrainMat.onBeforeCompile = (sh) => {
     sh.vertexShader = sh.vertexShader
@@ -360,13 +371,22 @@ export async function createHydroCycle(container, opts = {}) {
             vec3 fc = r < 0.36 ? vec3(0.27, 0.42, 0.09) : r < 0.62 ? vec3(0.19, 0.33, 0.07) : r < 0.80 ? vec3(0.13, 0.22, 0.19) : vec3(0.40, 0.40, 0.14);
             fc *= 0.93 + 0.07 * sin(q.y / cell.y * 6.2831 * 9.0);
             vec2 e = min(f, 1.0 - f) * cell;
-            float dike = 1.0 - smoothstep(0.035, 0.1, min(e.x, e.y));
-            vec3 col = mix(fc, vec3(0.33, 0.30, 0.18), dike);
+            float dike = 1.0 - smoothstep(0.025, 0.07, min(e.x, e.y));
+            bool flooded = r >= 0.62 && r < 0.80;
+            // 剛插秧的水田：水面上一排排小秧苗
+            float seed = 0.0;
+            if (flooded) {
+              vec2 g = fract(vec2(q.x * 6.0, q.y * 3.6)) - 0.5;
+              seed = 1.0 - smoothstep(0.08, 0.2, length(g * vec2(1.0, 1.7)));
+              fc = mix(fc, vec3(0.24, 0.38, 0.09), seed);
+            }
+            vec3 col = mix(fc, vec3(0.28, 0.33, 0.14) * (0.85 + 0.3 * mn), dike);
             diffuseColor.rgb = mix(diffuseColor.rgb, col, vPaddy);
-            pWater = (r >= 0.62 && r < 0.80) ? vPaddy * (1.0 - dike) : 0.0;
+            pWater = flooded ? vPaddy * (1.0 - dike) * (1.0 - 0.85 * seed) : 0.0;
           }
         }`)
-      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.18, pWater);');
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.12, pWater);')
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal = normalize(mix(normal, nonPerturbedNormal, pWater * 0.9));');
   };
   const terrain = new THREE.Mesh(tGeo, terrainMat);
   terrain.receiveShadow = true;
@@ -390,7 +410,7 @@ export async function createHydroCycle(container, opts = {}) {
       void main(){
         float y = vPos.y, u = vU;
         float depth = vSurf - y;
-        float grain = hash12(floor(vec2(u, y) * 40.0));
+        float grain = vnoise(vec2(u, y) * 40.0) * 0.7 + vnoise(vec2(u, y) * 97.0) * 0.3;
         // ---- 沖積層：礫石、砂、黏土互層，層面略有起伏 ----
         float yb = y + 0.7 * (fbm2(vec2(u * 0.035, 1.7)) - 0.5) * 2.0 + 0.25 * sin(u * 0.09);
         float bedT = 2.1;
@@ -433,7 +453,8 @@ export async function createHydroCycle(container, opts = {}) {
         col = mix(col, topsoil, 1.0 - smoothstep(topT - 0.08, topT + 0.08, depth));
         // ---- 地下水 ----
         float sat = smoothstep(vGwt + 0.04, vGwt - 0.08, y);
-        float pore = smoothstep(0.86, 0.93, hash12(floor(vec2(u, y) * 18.0)));
+        vec2 pc = cellN(vec2(u, y) * 9.0);
+        float pore = (1.0 - smoothstep(0.1, 0.2, pc.x)) * step(0.62, pc.y);   // 飽和層的孔隙水：圓點
         vec3 satCol = col * vec3(0.66, 0.82, 1.06) + vec3(0.0, 0.025, 0.08) + pore * vec3(0.04, 0.10, 0.2);
         float rockness = smoothstep(bedTop + 0.3, bedTop - 0.3, y);
         col = mix(col, satCol, sat * mix(0.9, 0.5, rockness));
@@ -605,7 +626,9 @@ export async function createHydroCycle(container, opts = {}) {
             base = mix(base, uPlume, pl * 0.7);
           }
           diffuseColor.rgb = mix(base, vec3(0.93, 0.96, 0.96), foam * 0.85);
-          diffuseColor.a = max(alpha, foam * 0.92);`)
+          diffuseColor.a = max(alpha, foam * 0.92);
+          if (uMode > 0.5 && uMode < 1.5) diffuseColor.a *= 1.0 - smoothstep(-1.0, 2.5, vWP.x - uMouth.x);
+          if (diffuseColor.a < 0.02) discard;`)
         .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.75, foam);')
         .replace('vec3 mapN = texture2D( normalMap, vNormalMapUv ).xyz * 2.0 - 1.0;', `
           vec3 mapN;
@@ -693,6 +716,7 @@ export async function createHydroCycle(container, opts = {}) {
     });
   }
   const riverMat = waterMaterial({ mode: 1, shallow: 0x79a497, deep: 0x2f6a72, minA: 0.55, maxA: 0.92 });
+  riverMat.depthWrite = false;   // 河口那段和海面重疊：不寫深度，才不會把底下的海面擋掉、露出海底
   const riverLine = withFlow(river.filter((p) => p.s <= sMouth + 4));
   const riverMesh = new THREE.Mesh(ribbon(riverLine), riverMat);
   const creekMesh = new THREE.Mesh(ribbon(withFlow(creek, { vMin: 0.8, vMax: 2.5 }), { extra: 0.2 }), riverMat);
@@ -850,7 +874,7 @@ export async function createHydroCycle(container, opts = {}) {
     return new THREE.ShaderMaterial({
       transparent: true, depthWrite: false,
       uniforms: { uTime: timeUniform, uTex: { value: puffTex }, ...extraUniforms },
-      vertexShader: `attribute vec3 aC; attribute vec4 aP; uniform float uTime; varying vec2 vUv; varying vec4 vP; varying float vF; varying float vCy;
+      vertexShader: `attribute vec3 aC; attribute vec4 aP; uniform float uTime; varying vec2 vUv; varying vec4 vP; varying float vF; varying float vCy; varying float vNear;
         void main(){
           vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
           vec3 up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
@@ -860,6 +884,7 @@ export async function createHydroCycle(container, opts = {}) {
           float s = aP.w > 0.0 ? aP.x * mix(0.5, 1.9, f) : aP.x;
           vec3 p = c + (right * position.x + up * position.y) * s;
           vUv = uv; vP = aP; vF = f; vCy = aC.y;
+          vNear = smoothstep(s * 0.6, s * 2.2, length(cameraPosition - c));
           gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
         }`,
       fragmentShader: frag,
@@ -875,7 +900,7 @@ export async function createHydroCycle(container, opts = {}) {
     m.frustumCulled = false;
     return m;
   }
-  const cloudMat = billboardMaterial(`uniform sampler2D uTex; uniform float uOpacity; uniform vec3 uSun; varying vec2 vUv; varying vec4 vP; varying float vCy;
+  const cloudMat = billboardMaterial(`uniform sampler2D uTex; uniform float uOpacity; uniform vec3 uSun; varying vec2 vUv; varying vec4 vP; varying float vCy; varying float vNear;
     void main(){
       float a0 = vP.z * 6.2831; mat2 R = mat2(cos(a0), -sin(a0), sin(a0), cos(a0));
       float a = texture2D(uTex, R * (vUv - 0.5) + 0.5).a;
@@ -888,7 +913,7 @@ export async function createHydroCycle(container, opts = {}) {
       vec3 shade = mix(vec3(0.47, 0.52, 0.60), vec3(0.33, 0.37, 0.45), vP.y);
       vec3 col = mix(shade, vec3(0.92, 0.93, 0.94), lit * mix(0.45, 0.95, hgt));
       col += vec3(1.0, 0.97, 0.9) * pow(1.0 - nV.z, 3.0) * max(0.0, dot(nW, uSun)) * 0.25;
-      gl_FragColor = vec4(col, a * uOpacity);
+      gl_FragColor = vec4(col, a * uOpacity * vNear);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
     }`, { uOpacity: { value: 0.93 }, uSun: { value: sunDir.clone() } });
@@ -998,6 +1023,7 @@ export async function createHydroCycle(container, opts = {}) {
       if (waterLevel[k] > -999) gy = Math.max(gy, waterLevel[k]);
       const tc = treeAt(x, z);
       if (tc) gy = Math.max(gy, tc.y + tc.top * 0.82);
+      gy = Math.max(gy, village.roofAt(x, z));
       drop.set([x, z, rand(), gy], r * 4);
     }
     const g = new THREE.InstancedBufferGeometry();
@@ -1036,7 +1062,7 @@ export async function createHydroCycle(container, opts = {}) {
     while (paths.length < 300 && tries++ < 6000) {
       const i = 2 + Math.floor(rand() * (nx - 4)), j = 2 + Math.floor(rand() * (nz - 4));
       let k = j * nx + i;
-      if (h[k] < 1.2 || channelMask[k] || waterLevel[k] > -999) continue;
+      if (h[k] < 1.2 || channelMask[k] || waterLevel[k] > -999 || village.built[k]) continue;
       if (X(i) > coast[j] - 3) continue;
       const pts = [];
       let steps = 0, end = 'none';

@@ -371,12 +371,12 @@ export async function createReservoir(container, opts = {}) {
   const arrI = arrowMesh(0x2b86e0), arrO = arrowMesh(0xc26a1d), arrS = arrowMesh(0x2c9a5b, { r: 0.35, head: 1.3, headR: 0.9 });
   arrI.rotation.z = -Math.PI / 2; arrO.rotation.z = -Math.PI / 2;
   arrI.position.set(-59, thalAt(-56) + 3.2, -1.2);
-  arrO.position.set(damX + 14, thalAt(damX + 18) + 3.2, -1.2);
+  arrO.position.set(damX + 19, thalAt(damX + 22) + 3.2, -1.2);
   arrS.position.set(-14, 11, -8);
   scene.add(arrI, arrO, arrS);
   const labels = {
     inflow: stage.label('入流 I', 'inflow', [-54, thalAt(-54) + 6.2, -1.2]),
-    outflow: stage.label('出流 O', 'outflow', [damX + 20, thalAt(damX + 20) + 6.2, -1.2]),
+    outflow: stage.label('出流 O', 'outflow', [damX + 25, thalAt(damX + 25) + 6.2, -1.2]),
     storage: stage.label('蓄水量 S', 'storage', [-20, 12, -10]),
     dam: stage.label('大壩', 'dam', [damX + 0.7, crest + 0.9, -5.6]),
     spill: stage.label('溢洪道', 'spillway', [damX + 4.6, spill - 2.6, (spZ0 + spZ1) / 2]),

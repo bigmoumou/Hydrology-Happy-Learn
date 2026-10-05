@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { block, paint, carGeometry } from '../lib/buildings.js';
 
-const CONC = 0x8c877d, CONC_D = 0x77726a, STEEL = 0x56666c, GLASS = 0x34444c, ROOF = 0x6d6a64, ASPH = 0x4b4d4f;
+const CONC = 0x8c877d, CONC_D = 0x77726a, STEEL = 0x3d4a45, GLASS = 0x34444c, ROOF = 0x6d6a64, ASPH = 0x4b4d4f;
 
 // 沿斜面的牆（x 往下游、y 往上）：從 (xa, ya) 到 (xb, yb)，高 hh、厚 t，中心在 z
 function slopeWall(xa, ya, xb, yb, hh, t, z, color) {
@@ -121,7 +121,7 @@ export function buildDamDetails(scene, ctx) {
   };
   const concMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.84 });
   mk(conc, concMat);
-  mk(steel, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0 }));
+  mk(steel, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0, envMapIntensity: 0.45 }));
   mk(glass, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.12, metalness: 0, envMapIntensity: 1.4 }));
   mk(dark, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 }));
 

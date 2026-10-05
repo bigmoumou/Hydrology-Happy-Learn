@@ -38,7 +38,7 @@ export function createPost(renderer, scene, camera, { level = 'high', capture = 
   if (new URLSearchParams(location.search).has('capture')) { capture = true; level = 'high'; }
   const T = {
     aoRadius: 2.5, aoIntensity: 0.9, aoThickness: 1, aoFalloff: 1, aoPerDist: 0.016, aoDistance: null,
-    bloomStrength: 0.2, bloomRadius: 0.45, bloomThreshold: 2.6,
+    bloomStrength: 0.18, bloomRadius: 0.45, bloomThreshold: 3.2,
     ...Object.fromEntries(Object.entries(ao).map(([k, v]) => ['ao' + k[0].toUpperCase() + k.slice(1), v])),
     ...Object.fromEntries(Object.entries(bloom).map(([k, v]) => ['bloom' + k[0].toUpperCase() + k.slice(1), v])),
   };
