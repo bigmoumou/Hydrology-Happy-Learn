@@ -135,9 +135,9 @@
           <g class="f" data-fi="1">
             <path d="M40 332 V112 Q40 96 56 96 H864 Q880 96 880 112 V330" class="cv__box cv__box--up"/>
             <g class="cv__pill cv__pill--up"><rect x="122" y="104" width="252" height="34" rx="17"/><text x="138" y="128">Above surface ΔS<tspan dy='6' font-size='72%'>s</tspan></text></g>
-            <g class="arw arw--p"><path class="shaft" d="M100 24 V 280"/><path class="head" d="M85 276 L115 276 L100 300 Z"/><text x="118" y="58" class="arw__sym">P</text><text x="118" y="84" class="arw__name">Precipitation</text></g>
-            <g class="arw arw--e"><path class="shaft" d="M400 326 V 60"/><path class="head" d="M385 64 L415 64 L400 40 Z"/><text x="418" y="58" class="arw__sym">E</text><text x="418" y="84" class="arw__name">Evaporation</text></g>
-            <g class="arw arw--t"><path class="shaft" d="M600 192 V 60"/><path class="head" d="M585 64 L615 64 L600 40 Z"/><text x="618" y="58" class="arw__sym">T</text><text x="618" y="84" class="arw__name">Transpiration</text></g>
+            <g class="arw arw--p"><path class="shaft" d="M100 24 V 280"/><path class="head" d="M85 276 L115 276 L100 300 Z"/><text x="118" y="58" class="arw__sym">P</text><text x="118" y="92" class="arw__name">Precipitation</text></g>
+            <g class="arw arw--e"><path class="shaft" d="M400 326 V 60"/><path class="head" d="M385 64 L415 64 L400 40 Z"/><text x="418" y="58" class="arw__sym">E</text><text x="418" y="92" class="arw__name">Evaporation</text></g>
+            <g class="arw arw--t"><path class="shaft" d="M600 192 V 60"/><path class="head" d="M585 64 L615 64 L600 40 Z"/><text x="618" y="58" class="arw__sym">T</text><text x="618" y="92" class="arw__name">Transpiration</text></g>
             <g class="arw arw--q"><path class="shaft" d="M640 306 H 942"/><path class="head" d="M938 291 L938 321 L962 306 Z"/><text x="668" y="288"><tspan class="arw__sym">Q</tspan><tspan class="arw__name" dx="8">Surface runoff</tspan></text></g>
           </g>
           <g class="inf">
@@ -219,11 +219,10 @@
           </ul>
         </div>
         <div class="pe-none">
-          <svg class="depth" viewBox="0 0 700 640" aria-label="Volume spread into depth">
-            <g class="depth__box"><path d="M120 470 L 360 560 L 640 450 L 400 360 Z" class="depth__floor"/></g>
-            <g class="depth__cube"><path d="M300 200 L 380 230 L 460 200 L 380 170 Z" class="c1"/><path d="M300 200 V 330 L 380 360 V 230 Z" class="c2"/><path d="M460 200 V 330 L 380 360 V 230 Z" class="c3"/><text x="380" y="130" class="depth__t">A tank of water (volume)</text></g>
-            <g class="depth__sheet"><path d="M120 452 L 360 542 L 640 432 L 400 342 Z" class="s1"/><path d="M120 452 V 470 L 360 560 V 542 Z" class="s2"/><path d="M640 432 V 450 L 360 560 V 542 Z" class="s3"/><text x="380" y="620" class="depth__t">Spread into a thin sheet (depth)</text></g>
-          </svg>
+          <div class="depth3d" role="img" aria-label="Volume spread into depth">
+            <p class="depth3d__t depth3d__t--block">A tank of water (volume)</p>
+            <p class="depth3d__t depth3d__t--sheet">Spread into a thin sheet (depth)</p>
+          </div>
         </div>
       </div>
     </section>

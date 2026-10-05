@@ -67,7 +67,14 @@
 .outlet__lab { font-size: 26px; font-weight: 700; fill: #1c6fc0; text-anchor: middle; }
 .outlet__lab2 { font-size: 20px; fill: #1c6fc0; font-family: var(--mono); text-anchor: middle; }
 
-/* 水深示意 */
+/* 水深示意：Three.js 的水塊攤平動畫（depth-demo.js）；文字跟著階段淡入淡出 */
+.depth3d { position: relative; width: 100%; height: 760px; margin-top: 10px; }
+.depth3d canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.depth3d__t { position: absolute; left: 0; right: 0; text-align: center; font-size: 26px; color: var(--muted); margin: 0; opacity: 0; transition: opacity .6s var(--ease); }
+.depth3d__t--block { top: 40px; }
+.depth3d__t--sheet { top: 40px; }
+.depth3d[data-phase="block"] .depth3d__t--block, .depth3d[data-phase="sheet"] .depth3d__t--sheet { opacity: 1; }
+/* 水深示意（舊的 SVG 版，保留給其他頁） */
 .depth { width: 100%; height: 100%; max-height: 700px; overflow: visible; }
 .depth__floor { fill: #d8cfbd; stroke: #a99f8b; stroke-width: 2; }
 .depth__cube .c1 { fill: #7cb7e6; } .depth__cube .c2 { fill: #3d8fd1; } .depth__cube .c3 { fill: #2a74b4; }

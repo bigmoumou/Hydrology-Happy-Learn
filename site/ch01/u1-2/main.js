@@ -1,13 +1,14 @@
 import { Deck } from '../../assets/deck.js';
 import { createReservoir } from '../../scenes/reservoir/scene.js';
 import { mountRouting } from '../../scenes/reservoir/routing-panel.js';
-import { setupCapture, markReady, setupQuiz, insets, progressTo, isCapture } from '../../assets/unit-common.js';
+import { mountDepthDemo } from '../../scenes/reservoir/depth-demo.js';
+import { setupCapture, markReady, setupQuiz, insets, progressTo, isCapture, autoHideLabels } from '../../assets/unit-common.js';
 import { tr } from '../../assets/i18n.js';
 
 const root = document.querySelector('.deck');
 const bg = document.getElementById('bg3d');
 const loading = document.getElementById('loading3d');
-let rv = null, panel = null;
+let rv = null, panel = null, depthDemo = null;
 const USES_3D = new Set(['title', 'scene', 'lab']);
 const deck = new Deck(root, { onChange: apply });
 setupCapture(root, deck);
@@ -66,6 +67,7 @@ function animateLevel(to, dur = 1.6) {
 
 createReservoir(bg, { quality: localStorage.getItem('hc.quality') || 'high', capture: isCapture, onProgress: progressTo(loading, document.getElementById('loadStage')) }).then((a) => {
   rv = a; window.hydro = a;
+  autoHideLabels(rv, bg);
   loading.classList.add('is-done');
   rv.onUpdate((t) => {
     if (ledger.active) {
@@ -90,6 +92,14 @@ createReservoir(bg, { quality: localStorage.getItem('hc.quality') || 'high', cap
   markReady();
 });
 
+// ---------- 「把體積攤平成水深」的水塊動畫（第一次進到那一頁才建立）----------
+function depthFor(slide, on) {
+  const box = slide && slide.querySelector('.depth3d');
+  if (on && box && !depthDemo) depthDemo = mountDepthDemo(box, { capture: isCapture, onPhase: (ph) => { box.dataset.phase = ph; } });
+  if (!depthDemo) return;
+  if (on && box) depthDemo.start(); else depthDemo.stop();
+}
+
 function rvState(st) {
   const sl = st.slide;
   let o = sl.dataset.rv ? JSON.parse(sl.dataset.rv) : {};
@@ -98,9 +108,10 @@ function rvState(st) {
 }
 
 function apply(st, why, { instant = false } = {}) {
-  if (why === 'video-open') { rv?.setActive(false); panel?.stop(); return; }
+  if (why === 'video-open') { rv?.setActive(false); panel?.stop(); depthFor(null, false); return; }
   if (why === 'video-close') why = 'slide';
   const s = st.slide, layout = s.dataset.layout;
+  depthFor(s, !!s.querySelector('.depth3d'));
   if (!rv) return;
   const on3d = USES_3D.has(layout);
   rv.setActive(on3d);

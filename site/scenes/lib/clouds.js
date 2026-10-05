@@ -7,7 +7,8 @@ import { makePuffTexture } from './textures.js';
 
 let puffTex = null;
 
-export function cloudPuffs(list, { timeUniform, sunDir, opacity = 0.9, base = 30, thick = 7, tint = 0xffffff, drift = 1, renderOrder = 8 }) {
+// near：鏡頭距離在這個範圍內時淡出（轉到側面時雲離鏡頭很近，不淡出會變成一大團模糊的灰）
+export function cloudPuffs(list, { timeUniform, sunDir, opacity = 0.9, base = 30, thick = 7, tint = 0xffffff, drift = 1, renderOrder = 8, near = [0, 0] }) {
   puffTex ||= makePuffTexture();
   const g = new THREE.InstancedBufferGeometry();
   g.copy(new THREE.PlaneGeometry(1, 1));
@@ -18,16 +19,17 @@ export function cloudPuffs(list, { timeUniform, sunDir, opacity = 0.9, base = 30
     transparent: true, depthWrite: false,
     uniforms: {
       uTime: timeUniform, uTex: { value: puffTex }, uSun: { value: sunDir.clone().normalize() }, uOpacity: { value: opacity },
-      uBase: { value: base }, uThick: { value: thick }, uTint: { value: new THREE.Color(tint) }, uDrift: { value: drift },
+      uBase: { value: base }, uThick: { value: thick }, uTint: { value: new THREE.Color(tint) }, uDrift: { value: drift }, uNear: { value: new THREE.Vector2(...near) },
     },
-    vertexShader: `attribute vec3 aC; attribute vec4 aP; uniform float uTime, uDrift; varying vec2 vUv; varying vec4 vP; varying float vCy; varying float vNear;
+    vertexShader: `attribute vec3 aC; attribute vec4 aP; uniform float uTime, uDrift; uniform vec2 uNear; varying vec2 vUv; varying vec4 vP; varying float vCy; varying float vNear;
       void main(){
         vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
         vec3 up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
         vec3 c = aC + vec3(sin(uTime * 0.03 + aP.z * 6.0) * 0.8, 0.0, cos(uTime * 0.025 + aP.z * 5.0) * 0.5) * uDrift;
         vec3 p = c + (right * position.x + up * position.y) * aP.x;
         vUv = uv; vP = aP; vCy = aC.y;
-        vNear = smoothstep(aP.x * 0.6, aP.x * 2.2, length(cameraPosition - c));
+        float dc = length(cameraPosition - c);
+        vNear = smoothstep(aP.x * 0.6, aP.x * 2.2, dc) * (uNear.y > 0.0 ? smoothstep(uNear.x, uNear.y, dc) : 1.0);
         gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
       }`,
     fragmentShader: `uniform sampler2D uTex; uniform float uOpacity, uBase, uThick; uniform vec3 uSun, uTint; varying vec2 vUv; varying vec4 vP; varying float vCy; varying float vNear;

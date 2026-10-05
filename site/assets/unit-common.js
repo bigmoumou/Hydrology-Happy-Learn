@@ -54,6 +54,28 @@ export function setupQuiz() {
   };
 }
 
+// 3D 標籤被說明卡、麵包屑、導覽列擋住，或超出畫面時自動淡出。
+// 不同螢幕比例（13 吋筆電到 32 吋螢幕）相機看到的範圍不同，固定的標籤清單顧不到所有尺寸；
+// 掛在 3D 的每格更新上（用場景時間節流），錄影逐格輸出時也一樣可以重現。
+export function autoHideLabels(api, container) {
+  let last = -1;
+  api.onUpdate((t) => {
+    if (t >= last && t - last < 0.2) return;
+    last = t;
+    const slide = document.querySelector('.slide.is-active');
+    if (!slide) return;
+    const blockers = [...slide.querySelectorAll('[data-inset], .crumb'), ...document.querySelectorAll('.deck__ui')].map((el) => el.getBoundingClientRect());
+    const vw = innerWidth, vh = innerHeight;
+    for (const el of container.querySelectorAll('.hc-label')) {
+      const r = el.querySelector('.hc-label__box')?.getBoundingClientRect();
+      if (!r || !r.width) continue;
+      const out = r.left < 4 || r.top < 4 || r.right > vw - 4 || r.bottom > vh - 4;
+      const hit = blockers.some((b) => b.width && !(r.right < b.left - 6 || r.left > b.right + 6 || r.bottom < b.top - 6 || r.top > b.bottom + 6));
+      el.classList.toggle('is-occluded', out || hit);
+    }
+  });
+}
+
 // 3D 載入進度條
 export const STAGE_WEIGHT = { '地形骨架': [0, 0.15], '侵蝕模擬': [0.15, 0.6], '河道與水文分析': [0.6, 0.75], '環境遮蔽': [0.75, 0.82], '建立 3D 模型': [0.82, 0.98], '完成': [1, 1] };
 export function progressTo(loading, stageEl) {

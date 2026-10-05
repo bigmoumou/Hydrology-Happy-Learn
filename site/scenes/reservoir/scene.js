@@ -53,6 +53,8 @@ export async function createReservoir(container, opts = {}) {
     uTime: timeUniform, uLevel: { value: 11 }, uDI: { value: 0.35 }, uDO: { value: 0.45 }, uSpill: { value: 0 }, uRelease: { value: 0.5 },
     uVI: { value: 1.5 }, uVO: { value: 2 }, uH: { value: hTex }, uThal: { value: tTex },
     uGrid: { value: new THREE.Vector4(x0, z0, dx, 0) }, uSize: { value: new THREE.Vector2(nx, nz) }, uDamX: { value: damX }, uCrest: { value: crest },
+    // 晃動：x 縱向（沿水庫長軸的第一模態）、y 橫向傾斜振幅；z、w 水庫中心 x 與長度
+    uSlosh: { value: new THREE.Vector4(0, 0, (x0 + damX) / 2, damX - x0) },
   };
   const GLSL_H = `
     uniform sampler2D uH, uThal; uniform vec4 uGrid; uniform vec2 uSize; uniform float uDamX, uLevel, uDI, uDO, uCrest;
@@ -60,6 +62,43 @@ export async function createReservoir(container, opts = {}) {
     float thalAt(float x){ return texture2D(uThal, vec2(((x - uGrid.x) / uGrid.z + 0.5) / uSize.x, 0.5)).r; }
     float levelAt(float x){ float b = thalAt(x); return x < uDamX ? max(uLevel, b + uDI) : b + uDO; }
   `;
+
+  // 水面起伏（頂點著色器用；JS 版 surfEta 給小船用，兩邊要一致）
+  //   小波：四道方向、波長不同的正弦波，大致往下游（+x）推進，振幅隨水深在岸邊收掉
+  //   晃動：模型被轉動時水跟不上——沿長軸的湖震（一端高一端低）＋橫向傾斜，阻尼振盪後停下
+  const GLSL_SURF = `
+    uniform float uTime; uniform vec4 uSlosh;
+    float waveEta(vec2 p){
+      return 0.085 * sin(dot(p, vec2(0.92, 0.39)) * 0.95 - uTime * 1.45)
+           + 0.055 * sin(dot(p, vec2(0.62, -0.78)) * 1.55 - uTime * 1.9 + 1.7)
+           + 0.035 * sin(dot(p, vec2(0.99, 0.12)) * 2.6 - uTime * 2.6 + 4.1)
+           + 0.02 * sin(dot(p, vec2(-0.3, 0.95)) * 3.7 - uTime * 3.1 + 0.6);
+    }
+    // 坡度（解析式，算法線用，不用多讀高度貼圖）
+    vec2 waveGrad(vec2 p){
+      return 0.085 * 0.95 * cos(dot(p, vec2(0.92, 0.39)) * 0.95 - uTime * 1.45) * vec2(0.92, 0.39)
+           + 0.055 * 1.55 * cos(dot(p, vec2(0.62, -0.78)) * 1.55 - uTime * 1.9 + 1.7) * vec2(0.62, -0.78)
+           + 0.035 * 2.6 * cos(dot(p, vec2(0.99, 0.12)) * 2.6 - uTime * 2.6 + 4.1) * vec2(0.99, 0.12)
+           + 0.02 * 3.7 * cos(dot(p, vec2(-0.3, 0.95)) * 3.7 - uTime * 3.1 + 0.6) * vec2(-0.3, 0.95);
+    }
+    vec2 sloshGrad(vec2 p){
+      float xr = (p.x - uSlosh.z) / uSlosh.w;
+      float gx = abs(xr) < 0.5 ? uSlosh.x * 3.14159 / uSlosh.w * cos(3.14159 * xr) : 0.0;
+      float gz = abs(p.y + 17.0) < 18.0 ? uSlosh.y / 18.0 : 0.0;
+      return vec2(gx, gz);
+    }
+    float sloshEta(vec2 p){
+      float xr = clamp((p.x - uSlosh.z) / uSlosh.w, -0.5, 0.5);
+      return uSlosh.x * sin(3.14159 * xr) + uSlosh.y * clamp((p.y + 17.0) / 18.0, -1.0, 1.0);
+    }
+  `;
+  const WAVE = [[0.085, 0.92, 0.39, 0.95, 1.45, 0], [0.055, 0.62, -0.78, 1.55, 1.9, 1.7], [0.035, 0.99, 0.12, 2.6, 2.6, 4.1], [0.02, -0.3, 0.95, 3.7, 3.1, 0.6]];
+  const surfEta = (x, z, t) => {
+    let w = 0;
+    for (const [a, dx2, dz2, k, om, ph] of WAVE) w += a * Math.sin((x * dx2 + z * dz2) * k - t * om + ph);
+    const S = U.uSlosh.value, xr = clamp((x - S.z) / S.w, -0.5, 0.5);
+    return w + S.x * Math.sin(Math.PI * xr) + S.y * clamp((z + 17) / 18, -1, 1);
+  };
 
   // ---------- 地表 ----------
   const pos = new Float32Array(N * 3), nor = new Float32Array(N * 3), col = new Float32Array(N * 3), uvs = new Float32Array(N * 2);
@@ -158,10 +197,19 @@ export async function createReservoir(container, opts = {}) {
     const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.07, transparent: true, normalMap: waterNormal, normalScale: new THREE.Vector2(0.4, 0.4), envMapIntensity: 1.9 });
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, U, { uSide: { value: side } });
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>\n${GLSL_H}\nuniform float uSide;\nvarying vec3 vWP;`)
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>\n${GLSL_H}\n${GLSL_SURF}\nuniform float uSide;\nvarying vec3 vWP;
+          // 這一點的水面起伏：小波在岸邊收掉；晃動只在水庫（下游河道不晃）
+          float waveAmp(vec2 p){ return smoothstep(0.0, 0.9, levelAt(p.x) - hAt(p)) * (uSide > 0.5 ? 0.5 : 1.0); }`)
+        .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+          vec2 pn = (modelMatrix * vec4(position, 1.0)).xz;
+          float wa = waveAmp(pn);
+          {
+            vec2 gr = waveGrad(pn) * wa + (uSide > 0.5 ? vec2(0.0) : sloshGrad(pn));
+            objectNormal = normalize(vec3(-gr.x, 1.0, -gr.y));
+          }`)
         .replace('#include <begin_vertex>', `#include <begin_vertex>
           vec3 wp0 = (modelMatrix * vec4(position, 1.0)).xyz;
-          transformed.y = levelAt(wp0.x) + 0.01;
+          transformed.y = levelAt(wp0.x) + 0.01 + waveEta(wp0.xz) * wa + (uSide > 0.5 ? 0.0 : sloshEta(wp0.xz));
           vWP = vec3(wp0.x, transformed.y, wp0.z);`);
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\n${GLSL_H}\n${GLSL_NOISE}\nuniform float uTime, uSpill, uRelease, uVI, uVO, uSide;\nvarying vec3 vWP;`)
         .replace('#include <color_fragment>', `#include <color_fragment>
@@ -228,8 +276,9 @@ export async function createReservoir(container, opts = {}) {
     g.setIndex(ind);
     const m = new THREE.Mesh(g, new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { ...U },
-      vertexShader: `${GLSL_H}\nattribute float aTop; varying float vD; varying float vTop; varying float vX;
-        void main(){ vec3 p = position; float lv = levelAt(p.x); float hb = hAt(vec2(p.x, ${z1.toFixed(3)} - 0.01));
+      vertexShader: `${GLSL_H}\n${GLSL_SURF}\nattribute float aTop; varying float vD; varying float vTop; varying float vX;
+        void main(){ vec3 p = position; vec2 pz = vec2(p.x, ${z1.toFixed(3)} - 0.01); float hb = hAt(pz);
+          float lv0 = levelAt(p.x), lv = lv0 + waveEta(pz) * smoothstep(0.0, 0.9, lv0 - hb) + (p.x < uDamX ? sloshEta(pz) : 0.0);
           p.y = aTop > 0.5 ? lv : min(hb, lv); vD = lv - p.y; vTop = lv - hb; vX = p.x;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }`,
       fragmentShader: `uniform float uTime; varying float vD; varying float vTop; varying float vX;
@@ -347,8 +396,37 @@ export async function createReservoir(container, opts = {}) {
     scene.add(m);
   }
 
+  {
+    const off = new THREE.Vector3(), sl = { ax: 0, vx: 0, az: 0, vz: 0 };
+    let prev = null;
+    const w0 = (2 * Math.PI) / 1.8, zeta = 0.13, KZ = 1.3, KX = 1.8, MAX = 0.95;
+    stage.onUpdate((t, dt) => {
+      if (!(dt > 0)) return;
+      off.copy(stage.camera.position).sub(stage.controls.target);
+      const phi = Math.atan2(off.x, off.z), th = Math.acos(clamp(off.y / off.length(), -1, 1));
+      if (prev) {
+        let dphi = phi - prev.phi; if (dphi > Math.PI) dphi -= 2 * Math.PI; if (dphi < -Math.PI) dphi += 2 * Math.PI;
+        const wPhi = dphi / dt, wTh = (th - prev.th) / dt;
+        // 角速度的改變量（開始轉、停下來的那一下）就是給水的衝量；用小步長積分，避免大 dt 不穩
+        // 換頁時鏡頭自動飛過去不算（只有使用者轉動模型、或展示用的慢速環繞才會激起晃動）
+        const userMove = !stage.state.tween;
+        const dW = userMove ? clamp(wPhi - prev.wPhi, -6, 6) : 0, dT = userMove ? clamp(wTh - prev.wTh, -6, 6) : 0;
+        sl.vz += KZ * dW; sl.vx += KX * dT + 0.25 * KZ * dW;
+        const n = Math.ceil(dt / (1 / 120)), h = dt / n;
+        for (let k = 0; k < n; k++) {
+          sl.vz += (-w0 * w0 * sl.az - 2 * zeta * w0 * sl.vz) * h; sl.az += sl.vz * h;
+          sl.vx += (-w0 * w0 * sl.ax - 2 * zeta * w0 * sl.vx) * h; sl.ax += sl.vx * h;
+        }
+        sl.az = clamp(sl.az, -MAX, MAX); sl.ax = clamp(sl.ax, -MAX, MAX);
+        prev.wPhi = wPhi; prev.wTh = wTh;
+      } else prev = { wPhi: 0, wTh: 0 };
+      prev.phi = phi; prev.th = th;
+      U.uSlosh.value.x = sl.ax; U.uSlosh.value.y = sl.az;
+    });
+  }
+
   // 壩頂道路、護欄、路燈、取水塔、壓力鋼管、發電廠、溢洪道導牆、小車、小船
-  const details = buildDamDetails(scene, { H, damX, crest, spill, spZ0, spZ1, zEnd: damZEnd, z1, thalAt, U, floorDam: T.floorDam });
+  const details = buildDamDetails(scene, { H, damX, crest, spill, spZ0, spZ1, zEnd: damZEnd, z1, thalAt, U, floorDam: T.floorDam, surfEta });
   stage.onUpdate((t) => details.update(t));
 
   // ---------- 樹 ----------
@@ -402,7 +480,7 @@ export async function createReservoir(container, opts = {}) {
         hi.push({ c: [cx + Math.cos(a) * r * 9, 31 + (1 - r) * 4.5 * cr() + cr() * 1.5, cz + Math.sin(a) * r * 2.5], s: 5 + cr() * 5, shade: 0.3, ph: cr() });
       }
     }
-    scene.add(cloudPuffs(hi, { timeUniform, sunDir: stage.sunDir, opacity: 0.9, base: 30, thick: 6 }));
+    scene.add(cloudPuffs(hi, { timeUniform, sunDir: stage.sunDir, opacity: 0.9, base: 30, thick: 6, near: [45, 85] }));
   }
 
   // ---------- 收支箭頭與標籤 ----------

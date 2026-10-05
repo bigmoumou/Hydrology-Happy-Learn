@@ -2,7 +2,7 @@ import { Deck } from '../../assets/deck.js';
 import { createTaiwan } from '../../scenes/taiwan/scene.js';
 import { createReservoir } from '../../scenes/reservoir/scene.js';
 import { mountMass, FLOWS } from '../../scenes/reservoir/mass-panel.js';
-import { setupCapture, markReady, setupQuiz, insets, progressTo, isCapture } from '../../assets/unit-common.js';
+import { setupCapture, markReady, setupQuiz, insets, progressTo, isCapture, autoHideLabels } from '../../assets/unit-common.js';
 import { tr } from '../../assets/i18n.js';
 
 const root = document.querySelector('.deck');
@@ -72,12 +72,14 @@ let pending = 2;
 const ready = () => { if (--pending === 0) { apply(deck.state(), 'slide', { instant: true }); markReady(); } };
 createTaiwan(bgTw, { base: new URL('../../data/', import.meta.url).href, capture: isCapture, quality: localStorage.getItem('hc.quality') || 'high', onProgress: progressTo(document.getElementById('loadTw'), document.getElementById('loadTwStage')) }).then((a) => {
   tw = a; window.taiwan = a; window.hydro = a;
+  autoHideLabels(tw, bgTw);
   document.getElementById('loadTw').classList.add('is-done');
   if (isCapture) tw.setDrift(0.06);
   ready();
 });
 createReservoir(bgRv, { capture: isCapture, quality: localStorage.getItem('hc.quality') || 'high', onProgress: progressTo(document.getElementById('loadRv'), document.getElementById('loadRvStage')) }).then((a) => {
   rv = a;
+  autoHideLabels(rv, bgRv);
   document.getElementById('loadRv').classList.add('is-done');
   panel = mountMass({ phys: document.getElementById('phys'), chart: document.getElementById('chart'), tasks: document.getElementById('tasks'), rv });
   window.lab = panel;

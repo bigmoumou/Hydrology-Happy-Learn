@@ -25,7 +25,12 @@ export function simulateRouting(rv, { Ip, Ob, Cw, L0 = 13.0, T = 48, dt = 0.05, 
   }
   let kI = 0, kO = 0, kS = 0;
   for (let k = 0; k < n; k++) { if (I[k] > I[kI]) kI = k; if (O[k] > O[kO]) kO = k; if (S[k] > S[kS]) kS = k; }
-  return { t, I, O, S, L, n, dt, T, kI, kO, kS, overtop, S0: S[0], params: { Ip, Ob, Cw } };
+  // 蓄水量在中途達到最大（dS/dt 由正轉負，那一刻 I = O）；一開始就最大表示出流一直大於入流
+  const maxInside = kS > 0 && kS < n - 1 && Math.abs(I[kS] - O[kS]) <= Math.max(2, 0.02 * I[kI]);
+  // 一路減少：每一步蓄水量都沒有增加（出流始終 ≥ 入流），而且最後真的變少
+  let falling = S[n - 1] < S[0] - 1;
+  for (let k = 1; k < n && falling; k++) if (S[k] > S[k - 1] + 1e-6) falling = false;
+  return { t, I, O, S, L, n, dt, T, kI, kO, kS, overtop, maxInside, falling, S0: S[0], params: { Ip, Ob, Cw } };
 }
 
 export function mountRouting({ phys, chart, tasks, rv, hoursPerSec = 2.4 }) {
@@ -61,15 +66,14 @@ export function mountRouting({ phys, chart, tasks, rv, hoursPerSec = 2.4 }) {
   const done = new Set();
   function recompute() {
     sim = simulateRouting(rv, P);
-    const peakAtt = sim.O[sim.kO] / sim.I[sim.kI];
     q('[data-o="checks"]').innerHTML = `
       <li class="yes"><span>${tr(`入流洪峰 <b>${fmt(sim.I[sim.kI])}</b>（第 ${fmt(sim.t[sim.kI], 1)} hr）→ 出流洪峰 <b>${fmt(sim.O[sim.kO])}</b>（第 ${fmt(sim.t[sim.kO], 1)} hr）`, `Peak inflow <b>${fmt(sim.I[sim.kI])}</b> (at ${fmt(sim.t[sim.kI], 1)} hr) → peak outflow <b>${fmt(sim.O[sim.kO])}</b> (at ${fmt(sim.t[sim.kO], 1)} hr)`)}</span></li>
       <li class="${sim.overtop ? 'no' : 'yes'}"><span>${sim.overtop ? tr('<b style="color:#b23a30">水位超過壩頂：溢頂！</b>放流或溢洪道太小', '<b style="color:#b23a30">Water above the dam crest: overtopping!</b> Release or spillway too small') : tr('水位沒有超過壩頂', 'Water stays below the dam crest')}</span></li>`;
     if (tasks) {
       const rules = {
         spill: () => sim.L[sim.kS] > rv.spill + 0.05,
-        half: () => peakAtt < 0.5 && !sim.overtop,
-        drain: () => sim.S[sim.n - 1] < sim.S0 - 1 && sim.S[sim.kS] <= sim.S0 + 1,
+        half: () => Math.round(sim.O[sim.kO]) * 2 < Math.round(sim.I[sim.kI]) && !sim.overtop,   // 用畫面上的整數判斷「小於一半」
+        drain: () => sim.falling,
       };
       tasks.querySelectorAll('li[data-task]').forEach((li) => { if (rules[li.dataset.task]?.()) done.add(li.dataset.task); li.classList.toggle('is-done', done.has(li.dataset.task)); });
     }
@@ -115,11 +119,13 @@ export function mountRouting({ phys, chart, tasks, rv, hoursPerSec = 2.4 }) {
     line(sim.S, Ys, '#2c9a5b', 2.4);
     line(sim.I, Yq, '#2b86e0', 2.6);
     line(sim.O, Yq, '#c26a1d', 2.6);
-    // S 最大處（= I 與 O 相交）
-    const xs = X(sim.t[sim.kS]);
-    g.strokeStyle = ink; g.setLineDash([2, 3]); g.lineWidth = 1;
-    g.beginPath(); g.moveTo(xs, top); g.lineTo(xs, h - bot); g.stroke(); g.setLineDash([]);
-    g.fillStyle = ink; g.textAlign = 'center'; g.fillText(tr('S 最大：I = O', 'Max S: I = O'), xs, top + 12);
+    // S 最大處（= I 與 O 相交）：只有蓄水量在中途達到最大時才成立；出流一直大於入流（一開始就最大）就不標
+    if (sim.maxInside) {
+      const xs = X(sim.t[sim.kS]);
+      g.strokeStyle = ink; g.setLineDash([2, 3]); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(xs, top); g.lineTo(xs, h - bot); g.stroke(); g.setLineDash([]);
+      g.fillStyle = ink; g.textAlign = 'center'; g.fillText(tr('S 最大：I = O', 'Max S: I = O'), xs, top + 12);
+    }
     // 軸
     g.strokeStyle = ink; g.globalAlpha = 0.6; g.beginPath(); g.moveTo(l, top); g.lineTo(l, h - bot); g.lineTo(w - r, h - bot); g.stroke(); g.globalAlpha = 1;
     g.textAlign = 'right'; g.fillText(`${qMax}`, l - 6, top + 10); g.fillText('0', l - 6, h - bot + 4);
@@ -147,8 +153,10 @@ export function mountRouting({ phys, chart, tasks, rv, hoursPerSec = 2.4 }) {
       rv.setFlows({ I: Math.min(1, sim.I[n] / 900), O: Math.min(1, P.Ob / 600), spill: Math.min(1, (sim.O[n] - Math.min(P.Ob, sim.O[n])) / 500) });
       rv.setRate((sim.I[n] - sim.O[n]) / big);
     }
-    const d = sim.I[n] - sim.O[n];
-    q('[data-o="now"]').innerHTML = `${tr(`第 ${fmt(tau, 1)} hr：`, `t = ${fmt(tau, 1)} hr: `)}${fmt(sim.I[n])} − ${fmt(sim.O[n])} = <b>${d >= 0 ? '+' : ''}${fmt(d)}</b>　→　${Math.abs(d) < 8 ? tr('水位持平', 'level steady') : d > 0 ? tr('水位上升', 'level rising') : tr('水位下降', 'level falling')}`;
+    // 畫面上的數字：I、O 四捨五入成整數，差值用畫面上的兩個數算；上升／下降／持平照差值的正負
+    const Ir = Math.round(sim.I[n]), Or = Math.round(sim.O[n]), dr = Ir - Or;
+    const dTxt = dr > 0 ? `+${dr}` : dr < 0 ? `−${-dr}` : '0';
+    q('[data-o="now"]').innerHTML = `${tr(`第 ${fmt(tau, 1)} hr：`, `t = ${fmt(tau, 1)} hr: `)}${Ir} − ${Or} = <b>${dTxt}</b>　→　${dr === 0 ? tr('水位持平', 'level steady') : dr > 0 ? tr('水位上升', 'level rising') : tr('水位下降', 'level falling')}`;
     drawFrame(tau);
   }
   recompute();

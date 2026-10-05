@@ -172,7 +172,8 @@ export function buildDamDetails(scene, ctx) {
   let level = 11;
   const place = (t) => {
     const w = 0.05, s = Math.sin(t * w), c = Math.cos(t * w);
-    boat.position.set(-9 + 3.2 * s, level + 0.02, -3.4 + 0.9 * c);
+    const bx = -9 + 3.2 * s, bz = -3.4 + 0.9 * c;
+    boat.position.set(bx, level + 0.02 + (ctx.surfEta ? ctx.surfEta(bx, bz, t) : 0), bz);   // 跟著波浪、晃動起伏
     boat.rotation.y = Math.atan2(0.9 * s, 3.2 * c);
     boat.visible = level - H(boat.position.x, boat.position.z) > 0.3;
   };
