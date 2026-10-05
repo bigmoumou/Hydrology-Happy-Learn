@@ -555,7 +555,7 @@ export async function createHydroCycle(container, opts = {}) {
   // 展示底座（帶倒角的木座），放在實驗室的展示台上；周圍是有科學家在工作的實驗室
   // 實驗室只在互動實驗頁出現（setLab），其他頁維持乾淨的展示台
   const plinthInfo = addPlinth(scene, { x0, x1, z0, z1, bottom });
-  const lab = buildLab(scene, { renderer, camera, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, top: plinthInfo.labFloorY, modelW: plinthInfo.w, modelD: plinthInfo.d, upm: plinthInfo.w / 2.5 });
+  const lab = buildLab(scene, { renderer, camera });
   let labOn = false;
   // 有實驗室時：關掉展示台的漸層背景與地面陰影（只留底座的接觸暗部），背景改成霧化的實驗室
   const setLab = (on) => { labOn = on; bg.visible = !on; plinthInfo.ground[0].visible = !on; if (!on) lab.off(); };
