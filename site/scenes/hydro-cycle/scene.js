@@ -1384,7 +1384,7 @@ export async function createHydroCycle(container, opts = {}) {
   const base = { rain: 1, evap: 1, transp: 1 };
   const gains = {};
   function applyGains() {
-    const alias = { evapw: 'evap', transpw: 'transp' };
+    const alias = { evapw: 'evap', transpw: 'transp', percd: 'perc', dripHero: 'drip' };
     for (const [name, f] of Object.entries(flows)) f.material.uniforms.uAmount.value = gains[name] ?? gains[alias[name]] ?? 1;
     rainMat.uniforms.uRain.value = state.rain ? base.rain * (gains.rain ?? 1) : 0;
     rainUniform.value = Math.min(1, rainMat.uniforms.uRain.value);
@@ -1415,8 +1415,10 @@ export async function createHydroCycle(container, opts = {}) {
   let wetTarget = 0, heroWetTarget = 0, lastT = 0;
   function updateScene(t) {
     const dt = Math.max(0, Math.min(0.1, t - lastT)); lastT = t;
-    wetUniform.value += (wetTarget - wetUniform.value) * Math.min(1, dt * 1.5);
-    heroWet.value += (heroWetTarget - heroWet.value) * Math.min(1, dt * 1.5);
+    // 互動實驗的模擬：下雨時濕、雨停後跟著窪地積水慢慢乾（沒下雨就是乾的）
+    const simWet = gains.rain === undefined ? null : 0.35 * Math.max(gains.rain > 0.02 ? 1 : 0, Math.min(1, Math.max(0, ((gains.pond ?? 0.3) - 0.3) / 0.7)));
+    wetUniform.value += ((simWet ?? wetTarget) - wetUniform.value) * Math.min(1, dt * 1.5);
+    heroWet.value += ((simWet ?? heroWetTarget) - heroWet.value) * Math.min(1, dt * 1.5);
     timeUniform.value = t;
     for (const f of Object.values(flows)) f.update(t);
     villageApi.update(t);

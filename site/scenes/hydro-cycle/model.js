@@ -48,7 +48,8 @@ export function simulate({ i, tr, f, Se }, o = {}) {
   tot.Ia = Ss_tr;
   const dSg = tot.INF - tot.INT - tot.G; // = 土壤水增量 + 地下水與中間流蓄量變化
   const F = F_tr;
-  const overland = i > f;
+  // 漫地流：i > f 而且雨量超過截留＋窪蓄（P ≤ Sc 時雨全被接住，沒有超滲）
+  const overland = i > f && tot.Q > 0.01;
   const sub = F > Se;
   const caseId = overland ? (sub ? 'd' : 'c') : (sub ? 'b' : 'a');
   let peak = 0, tPeak = 0;
@@ -69,7 +70,8 @@ export function intensities(sim, tau) {
   const dry = 0.3, dryOut = 1 - (sinceRain > 0 ? Math.min(1, Math.max(0, (sinceRain - 3) / (sim.T - tr - 5))) : 0);
   return {
     rain: raining ? 0.12 + 0.88 * Math.min(1, i / 70) : 0,
-    infil: raining ? c(0.25 + Math.min(i, f) / 40) : 0,
+    // 入滲：只在真的有水滲進土壤時（雨一開始先填截留＋窪蓄，那段時間還沒入滲）
+    infil: sim.infl[k] > 0 ? c(0.25 + Math.min(sim.infl[k], f) / 40) : 0,
     overland: c(Math.pow(sim.qs[k] / 20, 0.7)),
     interflow: c(Math.pow(sim.qi[k] / 3, 0.7)),
     perc: c(Math.pow(sim.rech[k] / 15, 0.7)),
@@ -80,7 +82,8 @@ export function intensities(sim, tau) {
     transp: raining ? 0.1 : c(0.3 + sinceRain / 8),
     soilWet: c(sim.sw[k]),
     gwRise: c((sim.sg[k] - sim.tot.Sg0) / 20),
-    flood: c(Math.pow(Math.max(0, q - sim.qg[0]) / 25, 0.8)),
+    // 河水混濁：泥沙主要由地表逕流帶進河裡；中間流、地下水流出來的水是清的，只算一點點
+    flood: c(Math.pow(Math.max(0, sim.qs[k] + 0.25 * (sim.qi[k] + sim.qg[k] - sim.qg[0])) / 25, 0.8)),
     pond: dry + (1 - dry) * c(sim.ss[k]) * dryOut,
   };
 }
