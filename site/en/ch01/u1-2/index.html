@@ -117,29 +117,37 @@
             <p class="muted cv__def">Infiltration in; interflow and groundwater flow out</p>
           </div>
         </div>
-        <svg class="cvsvg" viewBox="0 0 1000 760" aria-label="Control volume sketch">
-          <defs><marker id="ca" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
-          <path class="cv__ground" d="M40 330 C 200 300 330 350 480 330 S 760 300 880 330 L 880 640 L 40 640 Z"/>
-          <path class="cv__gwt" d="M40 520 C 240 505 560 540 880 525"/>
-          <text x="60" y="512" class="cv__small">Water table</text>
-          <path class="cv__surf" d="M40 330 C 200 300 330 350 480 330 S 760 300 880 330"/>
-          <g class="cv__tree"><rect x="528" y="248" width="10" height="70"/><circle cx="533" cy="235" r="40"/><circle cx="505" cy="258" r="26"/><circle cx="562" cy="258" r="26"/></g>
+        <svg class="cvsvg" viewBox="0 0 1000 760" aria-label="Control-volume sketch">
+          <defs><clipPath id="cvc5"><path d="M40 332 C 170 316, 300 346, 450 332 S 720 316, 880 330 L880 652 L40 652 Z"/></clipPath></defs>
+          <g class="cv__tree"><path class="trunk" d="M556 345 L556 268 Q556 258 563 258 Q570 258 570 268 L570 345 Z"/><path class="trunk" d="M562 292 L540 268" stroke-width="7"/><circle cx="563" cy="232" r="42"/><circle cx="530" cy="255" r="28"/><circle cx="598" cy="254" r="29"/><circle cx="552" cy="212" r="22" class="hi"/></g>
+          
+          <g clip-path="url(#cvc5)">
+            <rect x="40" y="300" width="840" height="360" class="cv__topsoil"/>
+            <path d="M40 332 C 170 316, 300 346, 450 332 S 720 316, 880 330 L880 652 L40 652 Z" transform="translate(0 42)" class="cv__subsoil"/>
+            <path d="M40 520 C 240 506, 560 538, 880 524 L880 652 L40 652 Z" class="cv__sat"/>
+            <g class="cv__pebble"><ellipse cx="120" cy="430" rx="9" ry="5.6"/><ellipse cx="210" cy="470" rx="6" ry="3.7"/><ellipse cx="390" cy="455" rx="8" ry="5.0"/><ellipse cx="520" cy="410" rx="5" ry="3.1"/><ellipse cx="650" cy="470" rx="9" ry="5.6"/><ellipse cx="800" cy="440" rx="6" ry="3.7"/><ellipse cx="160" cy="590" rx="7" ry="4.3"/><ellipse cx="330" cy="620" rx="10" ry="6.2"/><ellipse cx="470" cy="575" rx="6" ry="3.7"/><ellipse cx="610" cy="615" rx="8" ry="5.0"/><ellipse cx="760" cy="600" rx="7" ry="4.3"/><ellipse cx="850" cy="560" rx="5" ry="3.1"/></g>
+          </g>
+          <path d="M40 520 C 240 506, 560 538, 880 524" class="cv__gwt"/>
+          <path d="M66 504 h18 l-9 12 z" class="cv__gwtmark"/><text x="92" y="512" class="cv__small">Water table</text>
+          <ellipse cx="400" cy="336" rx="44" ry="7" class="cv__pond"/>
+          <path d="M40 332 C 170 316, 300 346, 450 332 S 720 316, 880 330" class="cv__surf"/>
+          <g class="cv__grass"><path d="M70 329 q -3 -12 -9 -16 M70 329 q 1 -14 -1 -20 M70 329 q 4 -12 10 -15"/><path d="M138 324 q -3 -12 -9 -16 M138 324 q 1 -14 -1 -20 M138 324 q 4 -12 10 -15"/><path d="M240 330 q -3 -12 -9 -16 M240 330 q 1 -14 -1 -20 M240 330 q 4 -12 10 -15"/><path d="M300 336 q -3 -12 -9 -16 M300 336 q 1 -14 -1 -20 M300 336 q 4 -12 10 -15"/><path d="M480 330 q -3 -12 -9 -16 M480 330 q 1 -14 -1 -20 M480 330 q 4 -12 10 -15"/><path d="M690 321 q -3 -12 -9 -16 M690 321 q 1 -14 -1 -20 M690 321 q 4 -12 10 -15"/><path d="M780 322 q -3 -12 -9 -16 M780 322 q 1 -14 -1 -20 M780 322 q 4 -12 10 -15"/><path d="M850 327 q -3 -12 -9 -16 M850 327 q 1 -14 -1 -20 M850 327 q 4 -12 10 -15"/></g>
           <g class="f" data-fi="1">
-            <rect x="40" y="110" width="840" height="222" class="cv__box cv__box--up"/>
-            <text x="60" y="292" class="cv__boxlab">Above surface ΔS<tspan dy="7" font-size="72%">s</tspan></text>
-            <g class="arw arw--p"><path d="M210 40 V 200" marker-end="url(#ca)"/><text x="225" y="62">P<tspan x="225" dy="28" style="font-size:21px">Precipitation</tspan></text></g>
-            <g class="arw arw--e"><path d="M400 300 V 60" marker-end="url(#ca)"/><text x="432" y="62">E<tspan x="432" dy="28" style="font-size:21px">Evaporation</tspan></text></g>
-            <g class="arw arw--t"><path d="M600 210 V 60" marker-end="url(#ca)"/><text x="632" y="62">T<tspan x="632" dy="28" style="font-size:21px">Transpiration</tspan></text></g>
-            <g class="arw arw--q"><path d="M700 300 H 960" marker-end="url(#ca)"/><text x="690" y="284">Q <tspan style="font-size:21px">Surface runoff</tspan></text></g>
+            <path d="M40 332 V112 Q40 96 56 96 H864 Q880 96 880 112 V330" class="cv__box cv__box--up"/>
+            <g class="cv__pill cv__pill--up"><rect x="122" y="104" width="252" height="34" rx="17"/><text x="138" y="128">Above surface ΔS<tspan dy='6' font-size='72%'>s</tspan></text></g>
+            <g class="arw arw--p"><path class="shaft" d="M100 24 V 280"/><path class="head" d="M85 276 L115 276 L100 300 Z"/><text x="118" y="58" class="arw__sym">P</text><text x="118" y="84" class="arw__name">Precipitation</text></g>
+            <g class="arw arw--e"><path class="shaft" d="M400 326 V 60"/><path class="head" d="M385 64 L415 64 L400 40 Z"/><text x="418" y="58" class="arw__sym">E</text><text x="418" y="84" class="arw__name">Evaporation</text></g>
+            <g class="arw arw--t"><path class="shaft" d="M600 192 V 60"/><path class="head" d="M585 64 L615 64 L600 40 Z"/><text x="618" y="58" class="arw__sym">T</text><text x="618" y="84" class="arw__name">Transpiration</text></g>
+            <g class="arw arw--q"><path class="shaft" d="M640 306 H 942"/><path class="head" d="M938 291 L938 321 L962 306 Z"/><text x="668" y="288"><tspan class="arw__sym">Q</tspan><tspan class="arw__name" dx="8">Surface runoff</tspan></text></g>
           </g>
           <g class="inf">
-            <g class="f" data-fi="1"><g class="arw arw--inf"><path d="M300 270 V 430" marker-end="url(#ca)"/><text x="334" y="400">INF<tspan x="334" dy="28" style="font-size:21px">Infiltration</tspan></text></g></g>
+            <g class="f" data-fi="1"><g class="arw arw--inf"><path class="shaft" d="M170 300 V 420"/><path class="head" d="M155 416 L185 416 L170 440 Z"/><text x="188" y="420"><tspan class="arw__sym">INF</tspan><tspan class="arw__name" dx="8">Infiltration</tspan></text></g></g>
           </g>
           <g class="f" data-fi="2">
-            <rect x="40" y="332" width="840" height="308" class="cv__box cv__box--down"/>
-            <text x="60" y="625" class="cv__boxlab">Below surface ΔS<tspan dy="7" font-size="72%">g</tspan></text>
-            <g class="arw arw--int"><path d="M560 400 H 960" marker-end="url(#ca)"/><text x="690" y="388">INT <tspan style="font-size:21px">Interflow</tspan></text></g>
-            <g class="arw arw--g"><path d="M560 580 H 960" marker-end="url(#ca)"/><text x="690" y="568">G <tspan style="font-size:21px">Groundwater</tspan></text></g>
+            <path d="M40 332 V636 Q40 652 56 652 H864 Q880 652 880 636 V330" class="cv__box cv__box--down"/>
+            <g class="cv__pill cv__pill--down"><rect x="56" y="604" width="252" height="34" rx="17"/><text x="72" y="628">Below surface ΔS<tspan dy='6' font-size='72%'>g</tspan></text></g>
+            <g class="arw arw--int"><path class="shaft" d="M560 410 H 942"/><path class="head" d="M938 395 L938 425 L962 410 Z"/><text x="668" y="394"><tspan class="arw__sym">INT</tspan><tspan class="arw__name" dx="8">Interflow</tspan></text></g>
+            <g class="arw arw--g"><path class="shaft" d="M560 592 H 942"/><path class="head" d="M938 577 L938 607 L962 592 Z"/><text x="668" y="576"><tspan class="arw__sym">G</tspan><tspan class="arw__name" dx="8">Groundwater</tspan></text></g>
           </g>
         </svg>
       </div>
@@ -162,26 +170,35 @@
           </div>
           <p class="f" data-fi="3" style="font-size:25px; margin-top:12px">Streamflow is surface runoff plus interflow plus groundwater flow, so <b><var>Q</var> + <var>INT</var> + <var>G</var></b> is the <span class="em">streamflow measured at the outlet</span>. Every hydrologic method builds on this equation.</p>
         </div>
-        <svg class="cvsvg" viewBox="0 0 1000 760" aria-label="Combined control volume">
-          <defs><marker id="cb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
-          <path class="cv__ground" d="M40 330 C 200 300 330 350 480 330 S 760 300 880 330 L 880 640 L 40 640 Z"/>
-          <path class="cv__gwt" d="M40 520 C 240 505 560 540 880 525"/>
-          <path class="cv__surf" d="M40 330 C 200 300 330 350 480 330 S 760 300 880 330"/>
-          <g class="cv__tree"><rect x="528" y="248" width="10" height="70"/><circle cx="533" cy="235" r="40"/><circle cx="505" cy="258" r="26"/><circle cx="562" cy="258" r="26"/></g>
-          <rect x="40" y="110" width="840" height="222" class="cv__box cv__box--up cv__box--merge"/>
-          <rect x="40" y="332" width="840" height="308" class="cv__box cv__box--down cv__box--merge"/>
-          <rect x="40" y="110" width="840" height="530" class="cv__box cv__box--all"/>
-          <g class="arw arw--p"><path d="M210 40 V 200" marker-end="url(#cb)"/><text x="225" y="78">P</text></g>
-          <g class="arw arw--e"><path d="M400 300 V 60" marker-end="url(#cb)"/><text x="432" y="78">E</text></g>
-          <g class="arw arw--t"><path d="M600 210 V 60" marker-end="url(#cb)"/><text x="632" y="78">T</text></g>
-          <g class="inf"><g class="arw arw--inf"><path d="M300 270 V 430" marker-end="url(#cb)"/><text x="334" y="410">INF</text></g></g>
-          <g class="arw arw--q"><path d="M700 300 H 930" marker-end="url(#cb)"/><text x="760" y="284">Q</text></g>
-          <g class="arw arw--int"><path d="M560 400 H 930" marker-end="url(#cb)"/><text x="720" y="388">INT</text></g>
-          <g class="arw arw--g"><path d="M560 580 H 930" marker-end="url(#cb)"/><text x="720" y="568">G</text></g>
+        <svg class="cvsvg" viewBox="0 0 1000 760" aria-label="Merged control volume">
+          <defs><clipPath id="cvc6"><path d="M40 332 C 170 316, 300 346, 450 332 S 720 316, 880 330 L880 652 L40 652 Z"/></clipPath></defs>
+          <g class="cv__tree"><path class="trunk" d="M556 345 L556 268 Q556 258 563 258 Q570 258 570 268 L570 345 Z"/><path class="trunk" d="M562 292 L540 268" stroke-width="7"/><circle cx="563" cy="232" r="42"/><circle cx="530" cy="255" r="28"/><circle cx="598" cy="254" r="29"/><circle cx="552" cy="212" r="22" class="hi"/></g>
+          
+          <g clip-path="url(#cvc6)">
+            <rect x="40" y="300" width="840" height="360" class="cv__topsoil"/>
+            <path d="M40 332 C 170 316, 300 346, 450 332 S 720 316, 880 330 L880 652 L40 652 Z" transform="translate(0 42)" class="cv__subsoil"/>
+            <path d="M40 520 C 240 506, 560 538, 880 524 L880 652 L40 652 Z" class="cv__sat"/>
+            <g class="cv__pebble"><ellipse cx="120" cy="430" rx="9" ry="5.6"/><ellipse cx="210" cy="470" rx="6" ry="3.7"/><ellipse cx="390" cy="455" rx="8" ry="5.0"/><ellipse cx="520" cy="410" rx="5" ry="3.1"/><ellipse cx="650" cy="470" rx="9" ry="5.6"/><ellipse cx="800" cy="440" rx="6" ry="3.7"/><ellipse cx="160" cy="590" rx="7" ry="4.3"/><ellipse cx="330" cy="620" rx="10" ry="6.2"/><ellipse cx="470" cy="575" rx="6" ry="3.7"/><ellipse cx="610" cy="615" rx="8" ry="5.0"/><ellipse cx="760" cy="600" rx="7" ry="4.3"/><ellipse cx="850" cy="560" rx="5" ry="3.1"/></g>
+          </g>
+          <path d="M40 520 C 240 506, 560 538, 880 524" class="cv__gwt"/>
+          <path d="M66 504 h18 l-9 12 z" class="cv__gwtmark"/><text x="92" y="512" class="cv__small">Water table</text>
+          <ellipse cx="400" cy="336" rx="44" ry="7" class="cv__pond"/>
+          <path d="M40 332 C 170 316, 300 346, 450 332 S 720 316, 880 330" class="cv__surf"/>
+          <g class="cv__grass"><path d="M70 329 q -3 -12 -9 -16 M70 329 q 1 -14 -1 -20 M70 329 q 4 -12 10 -15"/><path d="M138 324 q -3 -12 -9 -16 M138 324 q 1 -14 -1 -20 M138 324 q 4 -12 10 -15"/><path d="M240 330 q -3 -12 -9 -16 M240 330 q 1 -14 -1 -20 M240 330 q 4 -12 10 -15"/><path d="M300 336 q -3 -12 -9 -16 M300 336 q 1 -14 -1 -20 M300 336 q 4 -12 10 -15"/><path d="M480 330 q -3 -12 -9 -16 M480 330 q 1 -14 -1 -20 M480 330 q 4 -12 10 -15"/><path d="M690 321 q -3 -12 -9 -16 M690 321 q 1 -14 -1 -20 M690 321 q 4 -12 10 -15"/><path d="M780 322 q -3 -12 -9 -16 M780 322 q 1 -14 -1 -20 M780 322 q 4 -12 10 -15"/><path d="M850 327 q -3 -12 -9 -16 M850 327 q 1 -14 -1 -20 M850 327 q 4 -12 10 -15"/></g>
+          <path d="M40 332 V112 Q40 96 56 96 H864 Q880 96 880 112 V330" class="cv__box cv__box--up cv__box--merge"/>
+          <path d="M40 332 V636 Q40 652 56 652 H864 Q880 652 880 636 V330" class="cv__box cv__box--down cv__box--merge"/>
+          <rect x="34" y="90" width="852" height="568" rx="20" class="cv__box cv__box--all"/>
+          <g class="arw arw--p"><path class="shaft" d="M100 24 V 280"/><path class="head" d="M85 276 L115 276 L100 300 Z"/><text x="118" y="58" class="arw__sym">P</text></g>
+          <g class="arw arw--e"><path class="shaft" d="M400 326 V 60"/><path class="head" d="M385 64 L415 64 L400 40 Z"/><text x="418" y="58" class="arw__sym">E</text></g>
+          <g class="arw arw--t"><path class="shaft" d="M600 192 V 60"/><path class="head" d="M585 64 L615 64 L600 40 Z"/><text x="618" y="58" class="arw__sym">T</text></g>
+          <g class="inf"><g class="arw arw--inf"><path class="shaft" d="M170 300 V 420"/><path class="head" d="M155 416 L185 416 L170 440 Z"/><text x="188" y="420"><tspan class="arw__sym">INF</tspan></text></g></g>
+          <g class="arw arw--q"><path class="shaft" d="M640 306 H 912"/><path class="head" d="M908 291 L908 321 L932 306 Z"/><text x="740" y="288"><tspan class="arw__sym">Q</tspan></text></g>
+          <g class="arw arw--int"><path class="shaft" d="M560 410 H 912"/><path class="head" d="M908 395 L908 425 L932 410 Z"/><text x="740" y="394"><tspan class="arw__sym">INT</tspan></text></g>
+          <g class="arw arw--g"><path class="shaft" d="M560 592 H 912"/><path class="head" d="M908 577 L908 607 L932 592 Z"/><text x="740" y="576"><tspan class="arw__sym">G</tspan></text></g>
           <g class="f outlet" data-fi="3">
-            <path d="M935 300 V 600" class="outlet__bar"/>
-            <text x="935" y="680" class="outlet__lab" style="text-anchor:middle">Outlet</text>
-            <text x="935" y="712" class="outlet__lab2" style="text-anchor:middle">Q+INT+G</text>
+            <path d="M944 292 V 606" class="outlet__bar"/>
+            <text x="944" y="680" class="outlet__lab">Outlet</text>
+            <text x="944" y="710" class="outlet__lab2">Q+INT+G</text>
           </g>
         </svg>
       </div>

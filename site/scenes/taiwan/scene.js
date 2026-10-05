@@ -189,7 +189,8 @@ export async function createTaiwan(container, { base = '../../data/', exaggerati
   onProgress('完成', 1);
   stage.start();
   // 用原型繼承 stage（不用 ...stage 展開）：time、step 這些 getter 才會一直是最新值
-  return Object.assign(Object.create(stage), {
+  // defineProperties 才會保留 getter（Object.assign 只會把 getter 當下的值複製一次，例如 level 會永遠停在初始值）
+  return Object.create(stage, Object.getOwnPropertyDescriptors({
     meta, toXZ, sizeX, sizeZ,
     setMode,
     setTropic(on) { trop.visible = on; },
@@ -198,5 +199,5 @@ export async function createTaiwan(container, { base = '../../data/', exaggerati
       for (const l of Object.values(labels)) if (l.lonlat) { const [x, z] = toXZ(l.lonlat[0], l.lonlat[1]); l.obj.position.y = yAt(x, z) + l.lonlat[2]; }
     },
     setLabels(on) { stage.state.labels = on; updateLabels(); },
-  });
+  }));
 }

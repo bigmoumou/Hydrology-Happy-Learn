@@ -13,7 +13,8 @@ import { cloudPuffs } from '../lib/clouds.js';
 
 export const RV_STEPS = [
   { id: 'rv-overview', cam: [[-36, 62, 76], [-6, 3, -16]] },
-  { id: 'rv-system', cam: [[-30, 66, 84], [-4, 3, -16]] },
+  // 第 4 頁「水庫的帳」：入流（上游）、蓄水量、出流（壩下游）三個都要在說明卡右邊看得到——鏡頭拉遠、偏正面
+  { id: 'rv-system', cam: [[-12, 84, 140], [-4, 6, -12]] },
   { id: 'rv-section', cam: [[-10, 20, 62], [-10, 6, 0]] },
   { id: 'rv-area', cam: [[-24, 46, 52], [-14, 8, -14]] },
   { id: 'rv-dam', cam: [[50, 31, 22], [19, 9, -3]] },
@@ -435,7 +436,7 @@ export async function createReservoir(container, opts = {}) {
     arrS.rotation.z = dSdt >= 0 ? 0 : Math.PI;
     arrS.setLength(1.2 + 5 * Math.min(1, Math.abs(dSdt)));
     arrS.position.set(-14, L + (dSdt >= 0 ? 0.6 : 8.6), -8);
-    const xI = -57, lvI = Math.max(L, thalAt(xI) + U.uDI.value);
+    const xI = -54, lvI = Math.max(L, thalAt(xI) + U.uDI.value);
     arrI.position.set(xI - 2, lvI + 2.6, -1.2); labels.inflow.obj.position.set(xI + 2, lvI + 5.4, -1.2);
     labels.storage.obj.position.y = L + 1.0;
     details.setLevel(L);
@@ -457,7 +458,8 @@ export async function createReservoir(container, opts = {}) {
   onProgress('完成', 1);
   stage.start();
   // 用原型繼承 stage（不用 ...stage 展開）：time、step 這些 getter 才會一直是最新值
-  return Object.assign(Object.create(stage), {
+  // defineProperties 才會保留 getter（Object.assign 只會把 getter 當下的值複製一次，例如 level 會永遠停在初始值）
+  return Object.create(stage, Object.getOwnPropertyDescriptors({
     curve, crest, spill, damX, floorDam: T.floorDam, lowLevel: 8.5, terrain: T,
     storeFromLevel: (L) => interp(levels, stores, L),
     levelFromStore: (S) => interp(stores, levels, S),
@@ -468,5 +470,5 @@ export async function createReservoir(container, opts = {}) {
     setRate(r) { dSdt = r; apply(); },
     setArrows(on) { showArrows.value = on; apply(); },
     setLabels(on) { stage.state.labels = on; updateLabels(); },
-  });
+  }));
 }

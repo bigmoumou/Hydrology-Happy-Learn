@@ -26,29 +26,46 @@
 .cv__tag { font-size: 21px; color: var(--accent-2); margin: 0; }
 .cv__def { font-size: 22px; }
 .cvsvg { width: 100%; height: 820px; overflow: visible; }
-.cv__ground { fill: #b89a6e; opacity: .35; }
-.cv__surf { fill: none; stroke: #6b5636; stroke-width: 4; }
-.cv__gwt { fill: none; stroke: #2b86e0; stroke-width: 3; stroke-dasharray: 8 6; }
-.cv__small { font-size: 20px; fill: #2b86e0; }
-.cv__tree rect { fill: #5a4630; } .cv__tree circle { fill: #4b7a32; }
-.cv__box { fill: none; stroke-width: 3.5; stroke-dasharray: 12 8; transition: opacity .6s var(--ease), stroke .6s; }
-.cv__box--up { stroke: var(--accent); fill: color-mix(in srgb, var(--accent) 6%, transparent); }
-.cv__box--down { stroke: var(--accent-2); fill: color-mix(in srgb, var(--accent-2) 6%, transparent); }
-.cv__box--all { stroke: var(--ink); opacity: 0; }
-.cv__boxlab { font-size: 24px; font-weight: 700; fill: var(--muted); }
-.arw path { stroke: currentColor; stroke-width: 9; fill: none; }
-.arw text { fill: currentColor; font-size: 27px; font-weight: 700; font-family: var(--font); }
-.arw--p { color: #2b86e0; } .arw--e { color: #8a8f96; } .arw--t { color: #3f8a4a; } .arw--q { color: #1c6fc0; }
-.arw--inf { color: #59a8d8; } .arw--int { color: #19a38d; } .arw--g { color: #1747c9; }
+/* 土層：表土、底土、地下水位以下的飽和帶（不透明，樹幹插進土裡才看得出來是種在地上） */
+.cv__topsoil { fill: #b99872; }
+.cv__subsoil { fill: #dcc7a3; }
+.cv__sat { fill: #c5d0cf; }
+.cv__pebble ellipse { fill: #a88d68; opacity: .32; }
+.cv__surf { fill: none; stroke: #6b5636; stroke-width: 3.5; stroke-linecap: round; }
+.cv__grass path { fill: none; stroke: #5d8a3a; stroke-width: 2.6; stroke-linecap: round; }
+.cv__pond { fill: #8cc4e6; opacity: .85; }
+.cv__gwt { fill: none; stroke: #2b86e0; stroke-width: 3; stroke-dasharray: 9 7; }
+.cv__gwtmark { fill: #2b86e0; }
+.cv__small { font-size: 20px; fill: #1f6fb6; font-weight: 600; }
+.cv__tree .trunk { fill: #6b4f33; stroke: #6b4f33; stroke-linecap: round; }
+.cv__tree circle { fill: #4c7d33; } .cv__tree circle.hi { fill: #5f9440; }
+.cv__shrub circle { fill: #5b8c3c; }
+/* 控制體積：圓角虛線框，上下兩框以地表為界；框名做成小標籤 */
+.cv__box { fill: none; stroke-width: 3; stroke-dasharray: 11 8; stroke-linecap: round; transition: opacity .6s var(--ease), stroke .6s; }
+.cv__box--up { stroke: var(--accent); }
+.cv__box--down { stroke: var(--accent-2); }
+.cv__box--all { stroke: var(--ink); stroke-width: 3.5; opacity: 0; }
+.cv__pill rect { fill: rgba(255, 255, 255, .86); stroke-width: 1.5; }
+.cv__pill--up rect { stroke: color-mix(in srgb, var(--accent) 55%, transparent); }
+.cv__pill--down rect { stroke: color-mix(in srgb, var(--accent-2) 55%, transparent); }
+.cv__pill text { font-size: 22px; font-weight: 700; fill: #3c454b; }
+/* 箭頭：圓頭箭身＋同色箭頭；文字加一圈淡淡的白邊，壓在土層上也看得清楚 */
+.arw .shaft { fill: none; stroke: currentColor; stroke-width: 8; stroke-linecap: round; }
+.arw .head { fill: currentColor; stroke: currentColor; stroke-width: 3; stroke-linejoin: round; }
+.arw text { fill: currentColor; font-family: var(--font); font-weight: 700; paint-order: stroke; stroke: rgba(255, 255, 255, .8); stroke-width: 5px; stroke-linejoin: round; }
+.arw__sym { font-size: 30px; }
+.arw__name { font-size: 21px; font-weight: 600; }
+.arw--p { color: #2b86e0; } .arw--e { color: #7d848b; } .arw--t { color: #3f8a4a; } .arw--q { color: #1c6fc0; }
+.arw--inf { color: #3d95cf; } .arw--int { color: #13917d; } .arw--g { color: #1747c9; }
 .inf { transition: opacity .6s var(--ease); }
 .cancel { text-decoration: line-through; text-decoration-thickness: 3px; text-decoration-color: transparent; transition: text-decoration-color .5s; font-style: italic; }
 .flag-merged .cancel { text-decoration-color: #c2483d; color: var(--muted); }
 .flag-merged .inf { opacity: .18; }
 .flag-merged .cv__box--merge { opacity: .12; }
 .flag-merged .cv__box--all { opacity: 1; }
-.outlet__bar { stroke: #1c6fc0; stroke-width: 10; }
-.outlet__lab { font-size: 26px; font-weight: 700; fill: #1c6fc0; }
-.outlet__lab2 { font-size: 20px; fill: #1c6fc0; font-family: var(--mono); }
+.outlet__bar { stroke: #1c6fc0; stroke-width: 10; stroke-linecap: round; }
+.outlet__lab { font-size: 26px; font-weight: 700; fill: #1c6fc0; text-anchor: middle; }
+.outlet__lab2 { font-size: 20px; fill: #1c6fc0; font-family: var(--mono); text-anchor: middle; }
 
 /* 水深示意 */
 .depth { width: 100%; height: 100%; max-height: 700px; overflow: visible; }
