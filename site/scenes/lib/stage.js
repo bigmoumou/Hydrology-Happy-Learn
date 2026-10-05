@@ -5,6 +5,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 import { Sky } from 'three/addons/objects/Sky.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { createPost } from './post.js';
+import { buildLab } from './lab.js';
 
 export const GLSL_NOISE = /* glsl */`
   float hash12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
@@ -25,7 +26,10 @@ export const GLSL_FACE = /* glsl */`
   }
 `;
 
-export function createStage(container, { quality = 'high', capture = false, fov = 34, sunDir = new THREE.Vector3(-0.52, 0.66, 0.54), shadowBox = 100, steps = [], aoRadius = 2.4 } = {}) {
+// light：天空環境光（env）、半球補光（hemi）、太陽（sun）的強度。天空的環境光很亮又偏藍，
+// 正對天際線的山壁會被洗成藍灰色——山谷場景要把 env 降低、改用半球光補暗部。
+export function createStage(container, { quality = 'high', capture = false, fov = 34, sunDir = new THREE.Vector3(-0.52, 0.66, 0.54), shadowBox = 100, steps = [], aoRadius = 2.4, light = {}, lab: wantLab = false } = {}) {
+  const LT = { env: 0.55, hemi: 0.45, sun: 2.7, ...light };
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: capture });
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.shadowMap.enabled = true;
@@ -51,16 +55,16 @@ export function createStage(container, { quality = 'high', capture = false, fov 
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envScene = new THREE.Scene(); envScene.add(sky);
   scene.environment = pmrem.fromScene(envScene, 0, 0.1, 100000).texture;
-  scene.environmentIntensity = 0.55;
+  scene.environmentIntensity = LT.env;
 
-  const sun = new THREE.DirectionalLight(0xfff1de, 2.7);
+  const sun = new THREE.DirectionalLight(0xfff1de, LT.sun);
   sun.position.copy(sunDir).multiplyScalar(170);
   sun.castShadow = true;
   const res = { high: 4096, medium: 2048, low: 1024 }[quality];
   sun.shadow.mapSize.set(res, res);
   Object.assign(sun.shadow.camera, { left: -shadowBox, right: shadowBox, top: shadowBox * 0.9, bottom: -shadowBox * 0.9, near: 20, far: 400 });
   sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.035; sun.shadow.radius = 3;
-  scene.add(sun, sun.target, new THREE.HemisphereLight(0xd7e6f2, 0x6b5b45, 0.45));
+  scene.add(sun, sun.target, new THREE.HemisphereLight(0xd7e6f2, 0x6b5b45, LT.hemi));
 
   const bg = new THREE.Mesh(new THREE.SphereGeometry(1800, 32, 16), new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false,
@@ -76,6 +80,23 @@ export function createStage(container, { quality = 'high', capture = false, fov 
   bg.renderOrder = -10;
   bg.userData.noAO = true;
   scene.add(bg);
+
+  // 互動實驗頁的背景：霧化的水文實驗室（和 1-1 同一間）。第一次進互動頁才建立；
+  // 開著的時候關掉漸層背景和地面陰影（底座的接觸暗部保留），背景改成實驗室
+  let lab = null, labOn = false, ground = [];
+  function setLab(on) {
+    on = !!on;
+    if (on && !lab) lab = buildLab(scene, { renderer, camera });
+    labOn = on; bg.visible = !on;
+    ground.forEach((g) => { g.visible = !on; });
+    if (!on && lab) lab.off();
+  }
+  // 有互動實驗頁的單元：開場後趁空檔先把實驗室建好、畫一次（編譯著色器），第一次進互動頁才不會卡一下
+  function warmLab() {
+    if (lab || capture) return;
+    lab = buildLab(scene, { renderer, camera });
+    lab.render(0); lab.off();
+  }
 
   const timeUniform = { value: 0 };
   const state = { t: 0, paused: false, tween: null, step: 0, labels: true };
@@ -123,6 +144,7 @@ export function createStage(container, { quality = 'high', capture = false, fov 
     controls.update();
     timeUniform.value = state.t;
     updates.forEach((f) => f(state.t, dt));
+    if (labOn) lab.render(state.t);
     post.render();
     post.tick();
     labelRenderer.render(scene, camera);
@@ -143,7 +165,10 @@ export function createStage(container, { quality = 'high', capture = false, fov 
   const api = {
     renderer, scene, camera, controls, sun, sunDir, timeUniform, state, steps, post,
     label, onStep: (f) => stepHooks.push(f), onUpdate: (f) => updates.push(f), onScale: (f) => scaleHooks.push(f),
-    start() { resize(); if (steps.length) setStep(0, { instant: true }); if (!capture) raf = requestAnimationFrame(frame); },
+    start() {
+      resize(); if (steps.length) setStep(0, { instant: true }); if (!capture) raf = requestAnimationFrame(frame);
+      if (wantLab && !capture) (window.requestIdleCallback || ((f) => setTimeout(f, 2500)))(warmLab, { timeout: 6000 });
+    },
     resize,
     setStep,
     setStepById(id, o) { const i = steps.findIndex((s) => s.id === id); return setStep(i < 0 ? 0 : i, o); },
@@ -157,10 +182,14 @@ export function createStage(container, { quality = 'high', capture = false, fov 
       const dt = Math.max(0, Math.min(0.1, t - state.t)); state.t = t;
       controls.update(); timeUniform.value = t;
       updates.forEach((f) => f(t, dt));
+      if (labOn) lab.render(t);
       post.render();
       labelRenderer.render(scene, camera);
     },
     setQuality(name) { const r = post.setLevel(name); resize(); return r; },
+    setLab,
+    setGround(list) { ground = list; },
+    get labOn() { return labOn; },
     get qualityLevel() { return post.level; },
     get fps() { return post.fps; },
     tune: (p) => post.tune(p),
@@ -201,12 +230,14 @@ export function strataMaterial({ bottom, timeUniform }) {
         } else if (br < 0.72) alluv = vec3(0.60, 0.49, 0.31) * (0.92 + 0.12 * grain);
         else alluv = vec3(0.43, 0.27, 0.17) * (0.96 + 0.04 * sin(y * 34.0)) * (0.97 + 0.05 * grain);
         alluv *= 1.0 - 0.22 * (1.0 - smoothstep(0.0, 0.035, bf));
-        vec2 rp = vec2(u * 0.3, y * 0.62) + vec2(fbm2(vec2(u, y) * 0.12), fbm2(vec2(y, u) * 0.12)) * 1.1;
-        vec2 ci = floor(rp), cf = fract(rp); float f1 = 8.0, f2 = 8.0, cid2 = 0.0;
-        for (int yy = -1; yy <= 1; yy++) for (int xx = -1; xx <= 1; xx++) { vec2 g = vec2(float(xx), float(yy)); vec2 r = g + hash22(ci + g) - cf; float d = dot(r, r); if (d < f1) { f2 = f1; f1 = d; cid2 = hash12(ci + g); } else if (d < f2) f2 = d; }
-        float joint = (1.0 - smoothstep(0.0, 0.035, sqrt(f2) - sqrt(f1))) * smoothstep(0.35, 0.6, vnoise(vec2(u, y) * 0.4 + cid2 * 7.0));
-        vec3 rock = mix(vec3(0.40, 0.39, 0.37), vec3(0.34, 0.335, 0.32), cid2) * (0.9 + 0.1 * vnoise(vec2(u, y) * 2.5));
-        rock = mix(rock, vec3(0.16, 0.16, 0.155), joint * 0.55);
+        // 基岩：像教科書剖面圖的分層——幾層厚薄不一、略傾斜緩慢起伏的沉積岩，每層顏色微差（有的偏暖像砂岩），
+        // 層面一條細暗線、層內只有很淡的顆粒，不畫裂隙（裂隙一多就像磚牆或木紋）
+        float t = y + u * 0.045 + (fbm2(vec2(u * 0.012, 1.3)) - 0.5) * 2.4;
+        float L = t / 2.3 + 0.35 * hash12(vec2(floor(t / 2.3), 4.0)), li = floor(L), lf = fract(L);
+        vec3 rock = mix(vec3(0.42, 0.395, 0.355), vec3(0.285, 0.282, 0.278), hash12(vec2(li, 3.0)));
+        rock = mix(rock, rock * vec3(1.07, 1.0, 0.9), step(0.62, hash12(vec2(li, 5.0))));
+        rock *= 0.92 + 0.08 * vnoise(vec2(u * 0.35, y * 1.4)) + 0.1 * (grain - 0.5) + 0.05 * (vnoise(vec2(u, y) * 160.0) - 0.5);
+        rock *= 1.0 - 0.15 * (1.0 - smoothstep(0.0, 0.03, lf)) * (0.6 + 0.4 * vnoise(vec2(u * 0.2, li)));
         float bedTop = vSurf - vSoil + (fbm2(vec2(u * 0.2, 3.0)) - 0.5) * 1.8;
         vec3 col = mix(alluv, rock, smoothstep(bedTop + 0.3, bedTop - 0.3, y));
         float topT = 0.65 + 0.3 * fbm2(vec2(u * 0.4, 9.0));

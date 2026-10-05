@@ -128,5 +128,6 @@ function apply(st, why, { instant = false } = {}) {
   rv.setControls(layout === 'lab' ? 'full' : 'rotate');
   rv.setLabels(s.dataset.labels !== 'off');
   rv.setArrows(layout !== 'title');
+  rv.setLab(layout === 'lab');   // 實驗室背景只在互動實驗頁
   if (layout === 'lab') requestAnimationFrame(() => panel.redraw());
 }

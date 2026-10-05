@@ -3,7 +3,7 @@
 import { mulberry32, createNoise2D, fbm, ridged, smoothstep, clamp, lerp } from '../lib/noise.js';
 import { erode, sampleBilinear, blur, fillDepressions } from '../lib/grid.js';
 
-export const RV = { x0: -60, x1: 60, z0: -44, z1: 0.5, dx: 0.25, bottom: -12, damX: 16, crest: 16, spill: 14.6, floorDam: 2.4 };
+export const RV = { x0: -60, x1: 60, z0: -44, z1: 0.5, dx: 0.25, bottom: -7, damX: 16, crest: 16, spill: 14.6, floorDam: 2.4 };
 
 export function floorAt(x) {
   const { damX, floorDam } = RV;

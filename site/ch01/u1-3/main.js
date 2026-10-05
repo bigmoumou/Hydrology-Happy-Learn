@@ -114,6 +114,7 @@ function apply(st, why, { instant = false } = {}) {
     const o = stateOf(st, 'rv');
     if (why !== 'resize') rv.setStepById(o.step || 'rv-lab', { instant });
     rv.setArrows(true);
+    rv.setLab(layout === 'lab');   // 實驗室背景只在互動實驗頁
   }
   api.setInsets(...insets(s));
   api.setControls(layout === 'lab' ? 'full' : 'rotate');

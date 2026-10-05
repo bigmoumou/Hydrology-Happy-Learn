@@ -9,6 +9,7 @@ import { sampleBilinear } from '../lib/grid.js';
 import { makeWaterNormal, makeDetailNormal } from '../lib/textures.js';
 import { coniferGeometry, broadleafGeometry, shrubGeometry, treeMaterial, chunkedInstances, TreeLOD } from '../lib/trees.js';
 import { buildDamDetails } from './structures.js';
+import { cloudPuffs } from '../lib/clouds.js';
 
 export const RV_STEPS = [
   { id: 'rv-overview', cam: [[-36, 62, 76], [-6, 3, -16]] },
@@ -29,7 +30,7 @@ const loadTerrain = (seed, onProgress) => new Promise((resolve, reject) => {
 export async function createReservoir(container, opts = {}) {
   const onProgress = opts.onProgress || (() => {});
   const quality = opts.quality || 'high';
-  const stage = createStage(container, { quality, capture: !!opts.capture, steps: RV_STEPS, shadowBox: 95, sunDir: new THREE.Vector3(-0.35, 0.7, 0.62) });
+  const stage = createStage(container, { quality, capture: !!opts.capture, steps: RV_STEPS, shadowBox: 95, sunDir: new THREE.Vector3(-0.35, 0.7, 0.62), light: { env: 0.25, hemi: 0.65, sun: 3.0 }, lab: true });
   const { scene, timeUniform } = stage;
   const T = await loadTerrain(opts.seed ?? 3, onProgress);
   onProgress('建立 3D 模型', 0.3);
@@ -63,7 +64,7 @@ export async function createReservoir(container, opts = {}) {
   const pos = new Float32Array(N * 3), nor = new Float32Array(N * 3), col = new Float32Array(N * 3), uvs = new Float32Array(N * 2);
   const c = new THREE.Color(), c2 = new THREE.Color();
   const P = (hex) => new THREE.Color(hex);
-  const pal = { grassA: P(0x86a250), grassB: P(0x6e8d41), forestA: P(0x4b6a31), forestB: P(0x3a5426), rock: P(0x7a7266), rockD: P(0x575047), gravel: P(0xb6ac96) };
+  const pal = { grassA: P(0x7f9a4e), grassB: P(0x66843f), forestA: P(0x46632e), forestB: P(0x354d24), rock: P(0x726a5e), rockD: P(0x4f483f), gravel: P(0xb6ac96) };
   const slopeArr = new Float32Array(N);
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
     const k = j * nx + i, x = X(i), z = Z(j), y = h[k];
@@ -77,7 +78,9 @@ export async function createReservoir(container, opts = {}) {
     const n1 = 0.5 + 0.5 * nn(x * 0.09, z * 0.09), n2 = 0.5 + 0.5 * nn(x * 0.31 + 20, z * 0.31);
     c.copy(pal.grassA).lerp(pal.grassB, n1);
     c2.copy(pal.forestA).lerp(pal.forestB, n2);
-    c.lerp(c2, smoothstep(crest - 1, crest + 4, y) * 0.85);
+    // 林地：高處一律是森林；壩下游的低地依植被密度（和種樹用同一個雜訊）——不會有整片螢光綠草地
+    const dens = smoothstep(-0.3, 0.4, nn(x * 0.05, z * 0.05));
+    c.lerp(c2, Math.min(0.9, smoothstep(crest - 1, crest + 4, y) * 0.85 + (x > damX ? 0.35 + 0.45 * dens : 0)));
     c2.copy(pal.rock).lerp(pal.rockD, n1);
     c.lerp(c2, smoothstep(0.45, 0.62, slope + (n2 - 0.5) * 0.12));
     if (x > damX && Math.abs(z) < 4.5) c.lerp(pal.gravel, (1 - smoothstep(2.5, 4.5, Math.abs(z))) * (1 - smoothstep(0.1, 0.25, slope)));
@@ -92,33 +95,49 @@ export async function createReservoir(container, opts = {}) {
   tGeo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
   tGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   tGeo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  tGeo.setAttribute('aAO', new THREE.BufferAttribute(ao, 1));
   tGeo.setIndex(new THREE.BufferAttribute(idx, 1));
   tGeo.computeBoundingSphere();
   const terrainMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94, normalMap: makeDetailNormal(), normalScale: new THREE.Vector2(0.5, 0.5) });
   terrainMat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, { uLevel: U.uLevel, uCrest: U.uCrest, uDamX: U.uDamX });
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP;\nvarying vec3 vWN;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWP = (modelMatrix * vec4(position, 1.0)).xyz;\nvWN = normalize(mat3(modelMatrix) * objectNormal);');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec3 vWP;\nvarying vec3 vWN;\nuniform float uLevel, uCrest, uDamX;\n${GLSL_NOISE}`)
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aAO;\nvarying float vAO;\nvarying vec3 vWP;\nvarying vec3 vWN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvAO = aAO;\nvWP = (modelMatrix * vec4(position, 1.0)).xyz;\nvWN = normalize(mat3(modelMatrix) * objectNormal);');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying float vAO;\nvarying vec3 vWP;\nvarying vec3 vWN;\nuniform float uLevel, uCrest, uDamX;\n${GLSL_NOISE}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
           float mn = vnoise(vWP.xz * 1.6) * 0.6 + vnoise(vWP.xz * 5.3) * 0.4;
           diffuseColor.rgb *= 0.88 + 0.24 * mn;
           float steep = 1.0 - smoothstep(0.6, 0.8, vWN.y);
+          vec2 dn = normalize(vWN.xz + 1e-4);
+          float across = dot(vWP.xz, vec2(-dn.y, dn.x));
           if (steep > 0.01) {
-            vec2 dn = normalize(vWN.xz + 1e-4);
-            float across = dot(vWP.xz, vec2(-dn.y, dn.x));
-            float streak = vnoise(vec2(across * 2.2, vWP.y * 0.35)) * 0.65 + vnoise(vec2(across * 7.0, vWP.y * 0.9)) * 0.35;
-            float crack = smoothstep(0.62, 0.8, vnoise(vec2(across * 1.3, vWP.y * 2.4)));
-            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * (0.74 + 0.4 * streak) * (1.0 - 0.32 * crack), steep);
+            // 岩壁：略傾斜的沉積岩層，一層層凸出的岩緣（上亮下暗）、順坡往下的雨水流痕、零星的地衣
+            float bed = vWP.y * 1.25 + across * 0.07 + vnoise(vWP.xz * 0.12) * 2.2;
+            float bf = fract(bed);
+            float ledge = smoothstep(0.0, 0.08, bf) * (1.0 - smoothstep(0.5, 1.0, bf));
+            float streak = vnoise(vec2(across * 1.8, vWP.y * 0.22)) * 0.6 + vnoise(vec2(across * 6.0, vWP.y * 0.5)) * 0.4;
+            float lichen = smoothstep(0.62, 0.85, vnoise(vec2(across * 0.9, vWP.y * 0.9) + 13.0));
+            vec3 rk = diffuseColor.rgb * (0.78 + 0.3 * streak) * (0.86 + 0.2 * ledge);
+            rk = mix(rk, rk * vec3(0.82, 0.92, 0.74), lichen * 0.55);
+            diffuseColor.rgb = mix(diffuseColor.rgb, rk, steep);
           }
           if (vWP.x < uDamX + 0.2) {
-            // 消落帶（水位變動區）：裸露的淺色土石；剛退水的地方較暗較濕
-            float ring = smoothstep(uLevel - 0.02, uLevel + 0.05, vWP.y) * (1.0 - smoothstep(uCrest + 0.1, uCrest + 0.6, vWP.y));
-            vec3 bare = mix(vec3(0.19, 0.15, 0.105), vec3(0.13, 0.105, 0.075), vnoise(vWP.xz * 2.2));
-            bare *= 0.93 + 0.07 * smoothstep(-0.3, 0.3, sin(vWP.y * 18.0 + vnoise(vWP.xz) * 3.0));
-            float wet = 1.0 - smoothstep(0.0, 0.5, vWP.y - uLevel);
-            bare = mix(bare, bare * vec3(0.62, 0.6, 0.56), wet);
+            // 消落帶（水位變動區）：裸露的黃褐色土石，一圈圈舊水位留下的水平紋，陡處露出岩塊；
+            // 保留地形本身的明暗（AO），最上緣零星長草；剛退水的地方較暗較濕
+            float top = uCrest + 0.5 + 0.8 * vnoise(vWP.xz * 0.6);
+            float ring = smoothstep(uLevel - 0.02, uLevel + 0.05, vWP.y) * (1.0 - smoothstep(top - 0.4, top, vWP.y));
+            float b1 = vnoise(vWP.xz * 1.6), b2 = vnoise(vWP.xz * 7.0);
+            vec3 soil = mix(vec3(0.30, 0.225, 0.135), vec3(0.235, 0.18, 0.11), b1) * (0.88 + 0.22 * b2);
+            float lines = smoothstep(0.7, 1.0, 0.5 + 0.5 * sin(vWP.y * 10.0 + b1 * 2.4));
+            soil *= 1.0 - 0.13 * lines;
+            vec3 rockB = vec3(0.21, 0.19, 0.16) * (0.8 + 0.4 * b2);
+            vec3 bare = mix(soil, rockB, smoothstep(0.2, 0.7, steep));
+            bare *= 0.5 + 0.55 * vAO;
+            float wet = 1.0 - smoothstep(0.0, 0.6, vWP.y - uLevel);
+            bare = mix(bare, bare * vec3(0.6, 0.58, 0.55), wet);
+            float grassy = smoothstep(top - 1.6, top - 0.2, vWP.y) * smoothstep(0.4, 0.7, vnoise(vWP.xz * 1.3 + 5.0));
+            bare = mix(bare, diffuseColor.rgb, grassy * 0.75);
             diffuseColor.rgb = mix(diffuseColor.rgb, bare, ring);
             // 水下：泥沙淤積的湖底
             float under = 1.0 - smoothstep(uLevel - 0.05, uLevel, vWP.y);
@@ -129,12 +148,13 @@ export async function createReservoir(container, opts = {}) {
   const terrain = new THREE.Mesh(tGeo, terrainMat);
   terrain.receiveShadow = true; terrain.castShadow = true;
   scene.add(terrain);
-  buildBlockFaces(scene, { h, nx, nz, x0, z0, dx, bottom, material: strataMaterial({ bottom, timeUniform }), soilAt: (x, z, y) => lerp(2.5, 7, smoothstep(14, 4, y)) });
+  const plinth = buildBlockFaces(scene, { h, nx, nz, x0, z0, dx, bottom, material: strataMaterial({ bottom, timeUniform }), soilAt: (x, z, y) => lerp(2.5, 7, smoothstep(14, 4, y)) });
+  stage.setGround([plinth.ground[0]]);
 
   // ---------- 水面（上游：水庫＋入流河；下游：出流河）----------
   const waterNormal = makeWaterNormal();
   function waterMat(side) {
-    const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.06, transparent: true, normalMap: waterNormal, normalScale: new THREE.Vector2(0.4, 0.4), envMapIntensity: 1.25 });
+    const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.07, transparent: true, normalMap: waterNormal, normalScale: new THREE.Vector2(0.4, 0.4), envMapIntensity: 1.9 });
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, U, { uSide: { value: side } });
       sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>\n${GLSL_H}\nuniform float uSide;\nvarying vec3 vWP;`)
@@ -147,7 +167,7 @@ export async function createReservoir(container, opts = {}) {
           float depth = vWP.y - hAt(vWP.xz);
           if (depth < 0.0) discard;
           float riverness = uSide > 0.5 ? 1.0 : smoothstep(0.0, 0.12, thalAt(vWP.x) + uDI - uLevel);
-          vec3 shallow = mix(vec3(0.36, 0.55, 0.50), vec3(0.42, 0.58, 0.5), riverness), deep = vec3(0.07, 0.24, 0.30);
+          vec3 shallow = mix(vec3(0.15, 0.30, 0.26), vec3(0.20, 0.36, 0.29), riverness), deep = vec3(0.022, 0.105, 0.125);
           vec3 base = mix(shallow, deep, smoothstep(0.0, 6.0, depth));
           float a = mix(0.45, 0.94, smoothstep(0.0, 2.5, depth));
           float foam = (1.0 - smoothstep(0.0, 0.12, depth)) * (0.5 + 0.5 * vnoise(vWP.xz * 3.0 + uTime * 0.4));
@@ -213,7 +233,7 @@ export async function createReservoir(container, opts = {}) {
           gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }`,
       fragmentShader: `uniform float uTime; varying float vD; varying float vTop; varying float vX;
         void main(){ if (vTop <= 0.01) discard;
-          vec3 col = mix(vec3(0.13, 0.44, 0.50), vec3(0.03, 0.13, 0.19), smoothstep(0.0, 12.0, vD));
+          vec3 col = mix(vec3(0.09, 0.34, 0.34), vec3(0.015, 0.09, 0.12), smoothstep(0.0, 12.0, vD));
           col += vec3(0.03, 0.07, 0.08) * (0.5 + 0.5 * sin(vX * 0.6 + vD * 0.5 + uTime * 0.4)) * exp(-vD * 0.2);
           col = mix(col, vec3(0.62, 0.86, 0.93), 1.0 - smoothstep(0.0, 0.08, vD));
           float a = max(mix(0.4, 0.8, smoothstep(0.0, 12.0, vD)), 1.0 - smoothstep(0.0, 0.08, vD));
@@ -345,13 +365,15 @@ export async function createReservoir(container, opts = {}) {
       if (x < damX + 3 && y < crest + 0.8 && y < thalAt(x) + 4) continue;
       if (x < damX + 3 && y < crest + 0.8) continue;
       if (x >= damX + 3 && (Math.abs(z) < 5 || y < thalAt(x) + 1.2)) continue;
-      if (Math.abs(x - damX - 4) < 9 && z > -18) continue;
-      if (x > damX && x < damX + 20 && z > -7) continue;   // 發電廠一帶
+      // 壩體、壓力鋼管、發電廠周圍不種樹；再外圍一圈只長灌木（矮，不會擋到大壩）
+      const nearDam = (Math.abs(x - damX - 4) < 9 && z > -18) || (x > damX && x < damX + 20 && z > -7);
+      const core = (x > damX - 3 && x < damX + 12 && z > -12) || (x > damX && x < damX + 20 && z > -4.5);
+      if (core) continue;
       if (slopeArr[k] > 0.48) continue;
       const dens = 0.55 + 0.45 * smoothstep(-0.3, 0.4, nn(x * 0.05, z * 0.05)) - smoothstep(26, 31, y);
       if (rand() > dens) continue;
       const r = rand();
-      const key = y > 20 ? (r < 0.75 ? 'conA' : 'brA') : (r < 0.3 ? 'conA' : r < 0.62 ? 'brA' : r < 0.9 ? 'brB' : 'shrub');
+      const key = nearDam ? 'shrub' : y > 20 ? (r < 0.75 ? 'conA' : 'brA') : (r < 0.3 ? 'conA' : r < 0.62 ? 'brA' : r < 0.9 ? 'brB' : 'shrub');
       sp[key].list.push({ x, y, z, s: 0.8 + rand() * 0.6, rot: rand() * Math.PI * 2, tint: 0.82 + rand() * 0.3 });
       count++;
     }
@@ -367,6 +389,19 @@ export async function createReservoir(container, opts = {}) {
       });
       for (const mesh of chunkedInstances(s.geo, mat, items, 24, s.lo, treeLOD)) scene.add(mesh);
     }
+  }
+
+  // ---------- 雲 ----------
+  // 後方山脊上空兩團積雲（從低角度、封面看得到），不擋到水面和大壩
+  {
+    const cr = mulberry32(29), hi = [];
+    for (const [cx, cz, n] of [[-6, -43, 22], [-44, -41, 18]]) {
+      for (let k = 0; k < n; k++) {
+        const a = cr() * Math.PI * 2, r = Math.sqrt(cr());
+        hi.push({ c: [cx + Math.cos(a) * r * 9, 31 + (1 - r) * 4.5 * cr() + cr() * 1.5, cz + Math.sin(a) * r * 2.5], s: 5 + cr() * 5, shade: 0.3, ph: cr() });
+      }
+    }
+    scene.add(cloudPuffs(hi, { timeUniform, sunDir: stage.sunDir, opacity: 0.9, base: 30, thick: 6 }));
   }
 
   // ---------- 收支箭頭與標籤 ----------
