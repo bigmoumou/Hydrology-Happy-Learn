@@ -24,7 +24,6 @@ export function mountMass({ phys, chart, tasks, rv, monthsPerSec = 1.2 }) {
     <header class="phys__head">
       <p class="phys__eyebrow">PARAMETERS · ${tr(`習題 8 的月流量`, `EXERCISE 8 FLOWS`)}</p>
       <h3 class="phys__title">${tr(`流量累積曲線決定水庫容量`, `Sizing a reservoir with the mass curve`)}</h3>
-      <label class="phys__sim"><input type="checkbox" data-k="sim" checked> ${tr(`3D 水位跟著操作模擬`, `3D water level follows operation`)}</label>
     </header>
     <section class="ph">
       <h4><span class="ph__no">01</span>${tr(`河川月流量`, `Monthly river flow`)} <em>m³/s</em></h4>
@@ -141,7 +140,7 @@ export function mountMass({ phys, chart, tasks, rv, monthsPerSec = 1.2 }) {
     const idx = Math.min(run.S.length - 1, Math.round(mon * run.sub));
     const mi = Math.floor(mon) % 12;
     mo.querySelectorAll('span').forEach((s, i) => s.classList.toggle('is-on', i === mi));
-    if (q('input[data-k="sim"]').checked) {
+    {
       const K = res.feasible ? res.K : 0;
       const frac = K > 0 ? run.S[idx] / K : 1;
       rv.setLevel(rv.lowLevel + (rv.spill - 0.05 - rv.lowLevel) * Math.max(0, Math.min(1, frac)));

@@ -33,7 +33,6 @@ export function mountRouting({ phys, chart, tasks, rv, hoursPerSec = 2.4 }) {
     <header class="phys__head">
       <p class="phys__eyebrow">PARAMETERS · ${tr(`教學示意模型`, `SIMPLIFIED MODEL`)}</p>
       <h3 class="phys__title">${tr(`洪水通過水庫`, `A flood passes through a reservoir`)}</h3>
-      <label class="phys__sim"><input type="checkbox" data-k="sim" checked> ${tr(`3D 水位跟著模擬`, `3D water level follows the model`)}</label>
     </header>
     <section class="ph">
       <h4><span class="ph__no">01</span>${tr(`入流 <em>inflow I(t)</em>`, `Inflow <em>I(t)</em>`)}</h4>
@@ -142,7 +141,7 @@ export function mountRouting({ phys, chart, tasks, rv, hoursPerSec = 2.4 }) {
     if (!sim) return;
     const tau = ((rv.time - simOffset) * hoursPerSec) % sim.T;
     const n = Math.max(0, Math.min(sim.n - 1, Math.round(tau / sim.dt)));
-    if (q('input[data-k="sim"]').checked) {
+    {
       rv.setLevel(sim.L[n]);
       const big = Math.max(sim.I[sim.kI], 1);
       rv.setFlows({ I: Math.min(1, sim.I[n] / 900), O: Math.min(1, P.Ob / 600), spill: Math.min(1, (sim.O[n] - Math.min(P.Ob, sim.O[n])) / 500) });
