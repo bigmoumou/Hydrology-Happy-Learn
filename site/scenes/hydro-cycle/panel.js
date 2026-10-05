@@ -67,7 +67,8 @@ export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 2, initia
     phys.querySelectorAll('.horton figure').forEach((f) => f.classList.toggle('is-on', f.dataset.case === sim.caseId));
     q('[data-o="eq12"]').innerHTML = `<span class="eq__tag">式 (1-2) 地表以上・降雨期間（<var>E</var>、<var>T</var> 很小，先當 0）</span>
       <span class="eq__f"><var>P</var> − (<var>E</var> + <var>T</var> + <var>INF</var> + <var>Q</var>) = Δ<var>S</var><sub>s</sub></span>
-      <span class="eq__n">${fmt(T.P)} − (0 + 0 + ${fmt(T.F)} + ${fmt(T.Q)}) = ${fmt(T.P - T.F - T.Q)} mm（截留＋窪蓄）</span>`;
+      <span class="eq__n">${fmt(T.P)} − (0 + 0 + ${fmt(T.F)} + ${fmt(T.Q)}) = ${fmt(T.P - T.F - T.Q)} mm</span>
+      <span class="eq__tag">差額留在地表：截留＋窪蓄</span>`;
     q('[data-o="eq13"]').innerHTML = `<span class="eq__tag">式 (1-3) 地表以下・雨開始後 36 小時</span>
       <span class="eq__f"><var>INF</var> − (<var>INT</var> + <var>G</var>) = Δ<var>S</var><sub>g</sub></span>
       <span class="eq__n">${fmt(T.INF)} − (${fmt(T.INT)} + ${fmt(T.G)}) = ${fmt(T.dSg)} mm</span>`;

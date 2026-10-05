@@ -46,7 +46,15 @@ html, body { height: 100%; overflow: hidden; }
 .muted { color: var(--muted); }
 .em { color: var(--accent-ink); font-weight: 700; }
 .em2 { color: var(--accent-2); font-weight: 700; }
-var { font-family: "Cambria Math", "Times New Roman", serif; font-style: italic; }
+/* 數學變數：用網站內建的思源宋體斜放（每台裝置一樣、行高和中文一致）。
+   斜體字母往右傾，會吃掉後面的空白、撞到右括號：右邊補一點距離；緊接著的下標再收回來 */
+var { font-family: var(--serif); font-style: italic; font-weight: inherit; padding-right: .09em; letter-spacing: .01em; }
+var + sub, var + sup { margin-left: -.07em; }
+sub, sup { line-height: 0; font-size: .7em; }
+sub { vertical-align: -.25em; }
+/* 避免段落最後一行只剩一兩個字（例如「少？」） */
+.slide p, .slide li, .phys p, .q__stem { text-wrap: pretty; }
+sup { vertical-align: .5em; }
 
 /* 頁首麵包屑（每頁左上） */
 .crumb { position: absolute; left: 64px; top: 40px; font-size: 19px; color: var(--muted); display: flex; gap: 14px; align-items: baseline; }
@@ -136,6 +144,7 @@ var { font-family: "Cambria Math", "Times New Roman", serif; font-style: italic;
 .eq__tag { display: block; font-size: 14.5px; color: var(--muted); }
 .eq__f { display: block; font-size: 19px; margin: 0; }
 .eq__n { display: block; font-family: var(--mono); font-size: 15.5px; color: var(--accent-ink); }
+.eq__n + .eq__tag { margin-top: 1px; }
 .chart { width: 100%; height: 270px; display: block; }
 .legend { margin: 6px 0 0; font-size: 15px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: center; }
 .lg { display: inline-block; width: 13px; height: 13px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }

@@ -42,7 +42,7 @@ export function mountRouting({ phys, chart, tasks, rv, hoursPerSec = 2.4 }) {
       <h4><span class="ph__no">02</span>出流 <em>outflow O(t)</em></h4>
       <div class="sl"><label>基本放流 <var>O</var><sub>b</sub></label><output data-o="Ob"></output><input type="range" data-k="Ob" min="0" max="400" step="10" aria-label="基本放流"></div>
       <div class="sl"><label>溢洪道寬度係數 <var>C</var><sub>w</sub></label><output data-o="Cw"></output><input type="range" data-k="Cw" min="0" max="1200" step="20" aria-label="溢洪道係數"></div>
-      <p class="ph__derived">溢流量 = <var>C</var><sub>w</sub>·(水位 − 溢洪道頂)<sup>1.5</sup>，水位沒超過溢洪道頂就是 0</p>
+      <p class="ph__derived">溢流量 = <var>C</var><sub>w</sub> · (水位 − 溢洪道頂)<sup>1.5</sup><br>水位沒超過溢洪道頂時為 0</p>
     </section>
     <section class="ph">
       <h4><span class="ph__no">03</span>連續方程式 <em>式 (1-1)</em></h4>

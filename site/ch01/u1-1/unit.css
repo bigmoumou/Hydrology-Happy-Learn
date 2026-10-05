@@ -43,9 +43,9 @@
 .flowchart .ln, .flowchart .ar { fill: none; stroke: currentColor; stroke-width: 2.2; }
 .flowchart .ar { marker-end: url(#ah); }
 .flowchart .ar--v { stroke: var(--accent-2); color: var(--accent-2); }
-.flowchart .et { font-size: 24px; font-style: italic; font-weight: 700; fill: var(--accent-2); font-family: "Cambria Math", "Times New Roman", serif; }
+.flowchart .et { font-size: 24px; font-style: italic; font-weight: 700; fill: var(--accent-2); font-family: var(--serif); }
 .flowchart .ax { fill: none; stroke: var(--ink); stroke-width: 2; }
-.flowchart .ax-l { font-size: 24px; font-style: italic; fill: var(--ink); font-family: "Cambria Math", "Times New Roman", serif; }
+.flowchart .ax-l { font-size: 24px; font-style: italic; fill: var(--ink); font-family: var(--serif); }
 .flowchart .hyeto rect { fill: #8796a3; }
 .flowchart .hydro { fill: none; stroke: var(--accent); stroke-width: 4; }
 .flowchart .drop { opacity: .9; }

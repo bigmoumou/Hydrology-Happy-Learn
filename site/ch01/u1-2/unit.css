@@ -1,8 +1,9 @@
 /* 單元 1-2 專用樣式 */
-.eqbig { font-size: 52px; margin: 10px 0 8px; font-family: "Cambria Math", "Times New Roman", var(--font); }
-.eqmid { font-size: 34px; margin: 6px 0; font-family: "Cambria Math", "Times New Roman", var(--font); }
+.eqbig { font-size: 52px; margin: 10px 0 8px; font-family: var(--serif); }
+.eqmid { font-size: 34px; margin: 6px 0; font-family: var(--serif); }
 .frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; font-size: .8em; line-height: 1.15; margin: 0 .15em; }
-.frac > span:first-child { border-bottom: 2px solid currentColor; padding: 0 .2em; }
+.frac > span:first-child { border-bottom: 2px solid currentColor; padding: 0 .2em .14em; }
+.frac > span:last-child { padding-top: .04em; }
 .analogy { margin-top: 30px; font-size: 27px; padding: 16px 22px; background: color-mix(in srgb, var(--accent-2) 9%, var(--surface)); border-left: 4px solid var(--accent-2); }
 
 /* 系統水槽 */
@@ -36,7 +37,7 @@
 .cv__box--all { stroke: var(--ink); opacity: 0; }
 .cv__boxlab { font-size: 24px; font-weight: 700; fill: var(--muted); }
 .arw path { stroke: currentColor; stroke-width: 9; fill: none; }
-.arw text { fill: currentColor; font-size: 27px; font-weight: 700; font-family: "Cambria Math", "Times New Roman", var(--font); }
+.arw text { fill: currentColor; font-size: 27px; font-weight: 700; font-family: var(--font); }
 .arw--p { color: #2b86e0; } .arw--e { color: #8a8f96; } .arw--t { color: #3f8a4a; } .arw--q { color: #1c6fc0; }
 .arw--inf { color: #59a8d8; } .arw--int { color: #19a38d; } .arw--g { color: #1747c9; }
 .inf { transition: opacity .6s var(--ease); }
