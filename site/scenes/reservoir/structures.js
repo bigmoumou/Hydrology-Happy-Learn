@@ -121,7 +121,7 @@ export function buildDamDetails(scene, ctx) {
   };
   const concMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.84 });
   mk(conc, concMat);
-  mk(steel, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0, envMapIntensity: 0.45 }));
+  mk(steel, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0, envMap: scene.environment, envMapIntensity: 0.45 }));
   mk(glass, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.12, metalness: 0, envMapIntensity: 1.4 }));
   mk(dark, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 }));
 

@@ -15,6 +15,7 @@ import { STEPS } from './steps.js';
 import { createPost } from '../lib/post.js';
 import { GLSL_FACE, faceIndex, addPlinth } from '../lib/stage.js';
 import { planVillage, buildVillage } from './village.js';
+import { buildLab } from '../lib/lab.js';
 
 const GLSL_NOISE = /* glsl */`
   float hash12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
@@ -551,8 +552,14 @@ export async function createHydroCycle(container, opts = {}) {
     }
   }
   ['front', 'back', 'left', 'right'].forEach(buildFace);
-  // 展示底座（帶倒角的木座）＋地面陰影
-  addPlinth(scene, { x0, x1, z0, z1, bottom });
+  // 展示底座（帶倒角的木座），放在實驗室的展示台上；周圍是有科學家在工作的實驗室
+  // 實驗室只在互動實驗頁出現（setLab），其他頁維持乾淨的展示台
+  const plinthInfo = addPlinth(scene, { x0, x1, z0, z1, bottom });
+  const lab = buildLab(scene, { renderer, camera, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, top: plinthInfo.labFloorY, modelW: plinthInfo.w, modelD: plinthInfo.d, upm: plinthInfo.w / 2.5 });
+  let labOn = false;
+  // 有實驗室時：關掉展示台的漸層背景與地面陰影（只留底座的接觸暗部），背景改成霧化的實驗室
+  const setLab = (on) => { labOn = on; bg.visible = !on; plinthInfo.ground[0].visible = !on; if (!on) lab.off(); };
+  setLab(false);
 
   // ---------- 水面材質 ----------
   // uMode：0 靜水（窪地）、1 流動（河川、溪流，帶狀 uv：x 橫向、y 沿流向）、2 海洋
@@ -1299,11 +1306,11 @@ export async function createHydroCycle(container, opts = {}) {
   // ---------- 導覽與狀態 ----------
   const state = { step: 0, rain: true, labels: true, paused: false, t: 0, tween: null };
   const stepFlows = {
-    cover: 'all', overview: 'all', precipitation: ['rain'], interception: ['dripHero', 'drip', 'rain'], depression: ['overland', 'rain'],
+    cover: 'all', overview: 'all', lab: 'all', precipitation: ['rain'], interception: ['dripHero', 'drip', 'rain'], depression: ['overland', 'rain'],
     infiltration: ['infil'], overland: ['overland'], interflow: ['interflow'], percolation: ['perc', 'percd'], groundwater: ['gw'],
     exfiltration: ['exfil'], evaporation: ['evap', 'evapw'], transpiration: ['transp', 'transpw'],
   };
-  const stepLabel = { cover: null, overview: null, precipitation: 'precipitation', interception: 'interception', depression: 'depression', infiltration: 'infiltration',
+  const stepLabel = { cover: null, overview: null, lab: null, precipitation: 'precipitation', interception: 'interception', depression: 'depression', infiltration: 'infiltration',
     overland: 'overland', interflow: 'interflow', percolation: 'percolation', groundwater: 'groundwater', exfiltration: 'exfiltration',
     evaporation: 'evaporation', transpiration: 'transpiration' };
 
@@ -1311,7 +1318,7 @@ export async function createHydroCycle(container, opts = {}) {
     const id = STEPS[state.step].id;
     const on = stepFlows[id];
     const has = (n) => on === 'all' || on.includes(n);
-    const calm = id === 'overview' || id === 'cover';
+    const calm = id === 'overview' || id === 'cover' || id === 'lab';
     for (const [name, f] of Object.entries(flows)) f.material.uniforms.uOpacity.value = has(name) ? (calm ? (name === 'evapw' || name === 'transpw' ? 0.3 : 0.55) : 1) : 0.08;
     if (id === 'interception') flows.drip.material.uniforms.uOpacity.value = 0.22;
     base.rain = has('rain') || id === 'depression' ? 1 : (id === 'evaporation' || id === 'transpiration' || id === 'exfiltration' ? 0 : 0.3);
@@ -1370,6 +1377,7 @@ export async function createHydroCycle(container, opts = {}) {
     for (const f of Object.values(flows)) f.update(t);
     villageApi.update(t);
     treeLOD.update(camera.position);
+    if (labOn) { lab.update(t); lab.render(); }
   }
 
   // 左側面板遮住的寬度：把投影中心往右移，讓模型置中在可見區域
@@ -1419,6 +1427,9 @@ export async function createHydroCycle(container, opts = {}) {
     get step() { return state.step; },
     setRain(on) { state.rain = on; applyStepVisuals(); },
     setLabels(on) { state.labels = on; applyStepVisuals(); },
+    // 背景的實驗室（三位科學家）：只在互動實驗頁打開
+    setLab,
+    labScene: lab,
     setPaused(p) { state.paused = p; },
     setGains(g) { Object.assign(gains, g); applyGains(); },
     // 影片用的慢速環繞：每換一步就反向，避免累積後構圖跑掉

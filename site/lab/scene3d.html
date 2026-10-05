@@ -25,6 +25,7 @@
     else if (s === 'tw') api = await (await import('../scenes/taiwan/scene.js')).createTaiwan(el, { base: '../data/' });
     else api = await (await import('../scenes/hydro-cycle/scene.js')).createHydroCycle(el, {});
     if (p.get('labels') === '0') api.setLabels(false);
+    if (p.get('lab') === '1' && api.setLab) api.setLab(true);
     if (p.get('step')) api.setStepById(p.get('step'), { instant: true });
     window.api = api;
     let t = api.time || 0;

@@ -118,7 +118,8 @@ const HUES = [[1.0, 0.95, 0.86], [0.92, 0.93, 0.94], [1.0, 0.9, 0.86], [0.92, 0.
 export function buildVillage(scene, plan) {
   const { houses } = plan;
   // 房子：每種造型一個 InstancedMesh
-  const houseMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, envMapIntensity: 0.65 });   // 天空反光弱一點，牆才不會泛藍白
+  // 天空反光弱一點，牆才不會泛藍白（材質要自己指定 envMap，envMapIntensity 才會生效）
+  const houseMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, envMap: scene.environment, envMapIntensity: 0.65 });
   const kinds = {
     'town-0': townHouseGeometry({ floors: 2, wall: 0xc7c0b2, seed: 3 }),
     'town-1': townHouseGeometry({ floors: 3, wall: 0xbebab1, seed: 5 }),

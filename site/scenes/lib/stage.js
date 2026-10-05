@@ -293,7 +293,8 @@ export function addPlinth(scene, { x0, x1, z0, z1, bottom, margin = 2.6, height 
   contact.rotation.x = -Math.PI / 2; contact.scale.set(w * 1.08, d * 1.16, 1); contact.position.set(cx, floorY - 0.1, cz);
   contact.renderOrder = -1; catcher.renderOrder = -2;
   scene.add(contact);
-  return { plinth, floorY };
+  // labFloorY：底座底面，放進實驗室時展示台的台面就在這個高度；ground：沒有實驗室時才顯示的地面陰影
+  return { plinth, floorY, labFloorY: bottom - height - 0.28, w, d, ground: [catcher, contact] };
 }
 
 // 3D 粗箭頭（給水量收支用）：沿 +y 建立，長度可用 scale.y 調

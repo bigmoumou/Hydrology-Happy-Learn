@@ -63,6 +63,7 @@ function apply(st, why, { instant = false } = {}) {
   api.setInsets(...insets(s));
   api.setControls(layout === 'lab' ? 'full' : 'rotate');
   api.setLabels(s.dataset.labels !== 'off');
+  api.setLab(layout === 'lab');   // 實驗室背景只在互動實驗頁
   if (layout === 'lab') requestAnimationFrame(() => panel?.redraw());
 }
 
