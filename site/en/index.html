@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hydrology</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C11 11 7 16 7 21a9 9 0 0 0 18 0c0-5-4-10-9-18z' fill='%230f6c9b'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../assets/base.css">
+  <link rel="stylesheet" href="../assets/deck.css">
+  <link rel="stylesheet" href="../assets/home.css">
+  <link rel="stylesheet" href="../assets/en.css">
+  <link rel="alternate" hreflang="zh-Hant" href="../">
+  <style>
+    /* English titles are longer than the Chinese ones: smaller chapter titles so three lines still fit a card */
+    .home__head h1 { letter-spacing: .01em; }
+    .home__head p { font-size: 26px; }
+    .ch__t { font-size: 23px; line-height: 1.2; margin-top: 4px; }
+    .ch.is-open .ch__t { font-size: 30px; }
+    .ch li { gap: 14px; }
+    .chapters { grid-template-columns: 1.5fr 1.9fr 1fr 1fr 1fr 1fr; }
+    .ch ul { font-size: 19.5px; gap: 12px; }
+    .home__foot { font-size: 14.5px; }
+    .home__foot span:last-child { white-space: nowrap; }
+  </style>
+</head>
+<body>
+<div class="deck home" data-layout="title">
+  <div class="home__bg"></div>
+  <div class="deck__stage">
+    <section class="slide is-active is-play" data-layout="title">
+      <nav class="lang rise" style="--d:.12s" aria-label="Language 語言"><a href="../" lang="zh-Hant" hreflang="zh-Hant">中文</a><a aria-current="page">English</a></nav>
+      <header class="home__head">
+        <p class="kicker rise">Course notes</p>
+        <h1 class="rise" style="--d:.05s">Hydrology</h1>
+        <p class="rise" style="--d:.1s">Built from a ten-chapter textbook. Each unit is a full-screen slide deck with 3D models, animations, interactive labs and self-checks.</p>
+        <p class="home__how rise" style="--d:.15s"><span><kbd>→</kbd><kbd>←</kbd> next / back</span><span><kbd>G</kbd> overview</span><span><kbd>F</kbd> full screen</span></p>
+      </header>
+      <div class="chapters">
+        <article class="ch is-open rise" style="--d:.2s">
+          <span class="ch__no">CH 01</span><span class="ch__t">Introduction</span><span class="ch__p">p.1–13</span>
+          <ul>
+            <li><a href="ch01/u1-1/">1-1 The Hydrologic Cycle</a><span class="quick"><a href="ch01/u1-1/#/lab">Lab</a></span></li>
+            <li><a href="ch01/u1-2/">1-2 The Water Budget Equation</a><span class="quick"><a href="ch01/u1-2/#/lab">Lab</a></span></li>
+            <li><a href="ch01/u1-3/">1-3 Modeling, Applications &amp; Taiwan</a><span class="quick"><a href="ch01/u1-3/#/lab">Lab</a></span></li>
+          </ul>
+        </article>
+        <article class="ch is-open rise" style="--d:.24s">
+          <span class="ch__no">CH 02</span><span class="ch__t">Watershed Characteristics</span><span class="ch__p">p.15–42 · in progress</span>
+          <ul>
+            <li>2-1 Boundaries &amp; river networks</li>
+            <li>2-2 Area, shape &amp; slope</li>
+            <li>2-3 Stream order, drainage density</li>
+            <li>2-4 Runoff components, baseflow</li>
+            <li>2-5 Partial areas, duration curves</li>
+          </ul>
+        </article>
+        <article class="ch rise" style="--d:.28s"><span class="ch__no">CH 03</span><span class="ch__t">Rainfall</span><span class="ch__p">p.43–86</span><span class="ch__soon">Coming soon</span></article>
+        <article class="ch rise" style="--d:.31s"><span class="ch__no">CH 04</span><span class="ch__t">Evaporation&nbsp;&amp; Transpiration</span><span class="ch__p">p.87–106</span><span class="ch__soon">Coming soon</span></article>
+        <article class="ch rise" style="--d:.34s"><span class="ch__no">CH 05</span><span class="ch__t">Infiltration</span><span class="ch__p">p.107–150</span><span class="ch__soon">Coming soon</span></article>
+        <article class="ch rise" style="--d:.37s"><span class="ch__no">CH 06</span><span class="ch__t">Groundwater &amp; Well Hydraulics</span><span class="ch__p">p.151–200</span><span class="ch__soon">Coming soon</span></article>
+        <article class="ch rise" style="--d:.40s"><span class="ch__no">CH 07</span><span class="ch__t">Rainfall–Runoff Routing</span><span class="ch__p">p.201–260</span><span class="ch__soon">Coming soon</span></article>
+        <article class="ch rise" style="--d:.43s"><span class="ch__no">CH 08</span><span class="ch__t">Reservoir &amp; Channel Routing</span><span class="ch__p">p.261–300</span><span class="ch__soon">Coming soon</span></article>
+        <article class="ch rise" style="--d:.46s"><span class="ch__no">CH 09</span><span class="ch__t">Statistics &amp; Frequency Analysis</span><span class="ch__p">p.301–340</span><span class="ch__soon">Coming soon</span></article>
+        <article class="ch rise" style="--d:.49s"><span class="ch__no">CH 10</span><span class="ch__t">Hydrologic Measurement</span><span class="ch__p">p.341–</span><span class="ch__soon">Coming soon</span></article>
+      </div>
+      <footer class="home__foot rise" style="--d:.55s">
+        <span>Study notes based on the Chinese textbook <i>Hydrology</i> (水文學). Text is rewritten; original text, figures and exercises © the author and publisher. Videos are in the Chinese version.</span>
+        <span><a href="https://github.com/bigmoumou/Hydrology-Happy-Learn">GitHub</a>　Code MIT · Content all rights reserved</span>
+      </footer>
+    </section>
+  </div>
+</div>
+<script>
+  // Same as the slides: 1920×1080 scaled uniformly, no scrolling
+  const root = document.querySelector('.deck');
+  function fit() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    root.style.setProperty('--s', s);
+    root.style.setProperty('--ox', `${(innerWidth - 1920 * s) / 2}px`);
+    root.style.setProperty('--oy', `${(innerHeight - 1080 * s) / 2}px`);
+  }
+  fit(); addEventListener('resize', fit);
+</script>
+</body>
+</html>

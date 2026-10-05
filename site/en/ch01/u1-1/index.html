@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>1-1 The Hydrologic Cycle</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C11 11 7 16 7 21a9 9 0 0 0 18 0c0-5-4-10-9-18z' fill='%230f6c9b'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../../assets/base.css">
+  <link rel="stylesheet" href="../../../assets/deck.css">
+  <link rel="stylesheet" href="../../../ch01/u1-1/unit.css">
+  <link rel="stylesheet" href="../../../assets/en.css">
+  <script type="importmap">
+    { "imports": { "three": "../../../vendor/three/build/three.module.js", "three/addons/": "../../../vendor/three/jsm/" } }
+  </script>
+</head>
+<body>
+<div class="deck" data-layout="title">
+  <div class="deck__bg" id="bg3d">
+    <div class="deck__loading" id="loading3d"><b>Generating 3D terrain</b><span id="loadStage">Preparing…</span><i></i></div>
+  </div>
+
+  <div class="deck__stage">
+
+    <!-- 01 Cover -->
+    <section class="slide" data-layout="title" data-step="cover" data-labels="off" data-title="Cover">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>Ch. 1 Introduction</span><span>›</span><span>Unit 1-1</span></nav>
+      <div class="title-block rise">
+        <p class="kicker">Chapter 1 · Unit 1-1</p>
+        <h1>The Hydrologic Cycle</h1>
+        <p class="lede">A raindrop's journey from the clouds back to the sea</p>
+        <p class="src" style="margin-top:18px">Textbook p. 3–6</p>
+        <div class="entry">
+          <button type="button" class="is-primary" data-deck="next">Start →</button>
+          <button type="button" data-deck="lab">Interactive lab</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 Goals -->
+    <section class="slide" data-layout="paper" data-title="Goals">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span></nav>
+      <div class="body cols cols-73">
+        <div>
+          <p class="kicker rise">Goals</p>
+          <h2 class="rise" style="--d:.08s">After this unit, you can…</h2>
+          <ol class="goal-list">
+            <li class="rise" style="--d:.2s">Explain what hydrology studies and which problems engineering hydrology solves</li>
+            <li class="rise" style="--d:.3s">Use 11 terms to describe how water moves between the atmosphere, the land surface and the subsurface</li>
+            <li class="rise" style="--d:.4s">Tell vapor transport from liquid transport and read the flowchart in Fig. 1-2</li>
+          </ol>
+        </div>
+        <div>
+          <p class="kicker rise" style="--d:.3s">Key terms</p>
+          <div class="chips">
+            <span class="chip rise" style="--d:.35s">Precipitation</span>
+            <span class="chip rise" style="--d:.39s">Interception</span>
+            <span class="chip rise" style="--d:.43s">Depression storage</span>
+            <span class="chip rise" style="--d:.47s">Infiltration</span>
+            <span class="chip rise" style="--d:.51s">Overland flow</span>
+            <span class="chip rise" style="--d:.55s">Surface runoff</span>
+            <span class="chip rise" style="--d:.59s">Interflow</span>
+            <span class="chip rise" style="--d:.63s">Percolation</span>
+            <span class="chip rise" style="--d:.67s">Groundwater</span>
+            <span class="chip rise" style="--d:.71s">Exfiltration</span>
+            <span class="chip rise" style="--d:.75s">Evaporation</span>
+            <span class="chip rise" style="--d:.79s">Transpiration</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 What is hydrology -->
+    <section class="slide" data-layout="paper" data-title="1.1 Definition of hydrology">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 3</span></nav>
+      <div class="body cols">
+        <div>
+          <p class="kicker rise">1.1 Definition of hydrology</p>
+          <h2 class="rise" style="--d:.08s">What is hydrology?</h2>
+          <p class="big-def rise" style="--d:.2s; margin-top:34px">Hydrology is the earth science of the <b>occurrence, circulation and distribution</b> of water on Earth, its physical and chemical properties, and its relation to all living things.</p>
+          <div class="f eng" style="margin-top:44px">
+            <p class="kicker">Engineering hydrology</p>
+            <p style="margin-top:8px">An applied earth science: it uses hydrologic principles to solve the engineering problems of water-resources development. It models the <span class="em">total volume and timing of water</span> in the hydrologic cycle to set design criteria, and it assesses the <span class="em2">risk</span> each structure faces.</p>
+          </div>
+        </div>
+        <div class="pe-none">
+          <svg class="sci" viewBox="0 0 760 760" aria-label="Sciences related to hydrology">
+            <g class="sci__links">
+              <line x1="380" y1="380" x2="380" y2="96"/><line x1="380" y1="380" x2="602" y2="203"/><line x1="380" y1="380" x2="657" y2="443"/>
+              <line x1="380" y1="380" x2="503" y2="636"/><line x1="380" y1="380" x2="257" y2="636"/><line x1="380" y1="380" x2="103" y2="443"/><line x1="380" y1="380" x2="158" y2="203"/>
+            </g>
+            <g class="sci__core"><circle cx="380" cy="380" r="104"/><text x="380" y="393" style="font-size:36px">Hydrology</text></g>
+            <g class="sci__n" style="--d:.35s"><circle cx="380" cy="96" r="78"/><text x="380" y="104" style="font-size:21px">Meteorology</text></g>
+            <g class="sci__n" style="--d:.45s"><circle cx="602" cy="203" r="78"/><text x="602" y="211" style="font-size:22px">Climatology</text></g>
+            <g class="sci__n" style="--d:.55s"><circle cx="657" cy="443" r="78"/><text x="657" y="451" style="font-size:22px">Geology</text></g>
+            <g class="sci__n" style="--d:.65s"><circle cx="503" cy="636" r="78"/><text x="503" y="644" style="font-size:22px">Geography</text></g>
+            <g class="sci__n" style="--d:.75s"><circle cx="257" cy="636" r="78"/><text x="257" y="642" style="font-size:17px">Geomorphology</text></g>
+            <g class="sci__n" style="--d:.85s"><circle cx="103" cy="443" r="78"/><text x="103" y="449" style="font-size:18px">Sedimentology</text></g>
+            <g class="sci__n" style="--d:.95s"><circle cx="158" cy="203" r="78"/><text x="158" y="210" style="font-size:19px">Oceanography</text></g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 Hydrologic cycle overview -->
+    <section class="slide" data-layout="scene" data-step="overview" data-title="1.2 Hydrologic cycle overview">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 3–4 · Fig. 1-1</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">1.2 Hydrologic cycle</p>
+        <h2>An endless cycle</h2>
+        <p>Earth's water circulates continuously through the <span class="em">atmosphere, soil and oceans</span>.</p>
+        <p class="f">The simplest version: seawater absorbs solar energy and <b>evaporates</b> → the vapor <b>condenses</b> into precipitation → rain, snow or frost falls on land → gravity carries it through streams and rivers <b>back to the sea</b>.</p>
+        <p class="note">Mountains on the left, sea on the right; the front is cut open to show the subsurface. Drag to rotate.</p>
+      </div>
+    </section>
+
+    <!-- 05 Precipitation -->
+    <section class="slide" data-layout="scene" data-step="precipitation" data-title="Precipitation">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 3</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">Liquid transport · 1 / 11</p>
+        <h2>Precipitation</h2>
+        <p>Water vapor condenses into clouds, then falls from the atmosphere to the ground as <span class="em">rain, snow or frost</span>.</p>
+        <p class="note">Coming up: why do clouds often gather over mountains? Chapter 3 explains the causes of rainfall.</p>
+      </div>
+    </section>
+
+    <!-- 06 Interception -->
+    <section class="slide" data-layout="scene" data-step="interception" data-title="Interception">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 4</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">Temporary storage · 2 / 11</p>
+        <h2>Interception</h2>
+        <p>Falling rain is first caught by <span class="em">tree canopies or buildings</span>. This is interception.</p>
+        <p class="f">Part of the intercepted water <b>evaporates</b> straight back to the air (Fig. 1-2: interception → evaporation <var>E</var>) and never reaches the ground; the rest drips from the canopy.</p>
+        <div class="legend3d"><span><i class="dot" style="background:#86c6f0"></i>Rain dripping from the canopy</span></div>
+      </div>
+    </section>
+
+    <!-- 07 Depression storage -->
+    <section class="slide" data-layout="scene" data-step="depression" data-title="Depression storage">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 5</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">Temporary storage · 3 / 11</p>
+        <h2>Depression storage</h2>
+        <p>Water flowing over the land collects in <span class="em">hollows in the ground</span>. This is depression storage.</p>
+        <p class="f">This water later evaporates or slowly infiltrates into the soil (Fig. 1-2: depression storage → infiltration, plus evapotranspiration <var>ET</var>).</p>
+        <div class="legend3d"><span><i class="dot" style="background:#2b86e0"></i>Overland flow (into hollows or channels)</span></div>
+      </div>
+    </section>
+
+    <!-- 08 Infiltration -->
+    <section class="slide" data-layout="scene" data-step="infiltration" data-title="Infiltration">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 4</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">Liquid transport · 4 / 11</p>
+        <h2>Infiltration</h2>
+        <p>Part of the rain that reaches the ground <span class="em">soaks into the soil</span> from the surface. This is infiltration.</p>
+        <p class="f">Look at the front cut: light-blue particles move down from the surface through the dark-brown topsoil. The bright blue line on the cut is the <b>water table</b>.</p>
+        <div class="legend3d"><span><i class="dot" style="background:#59c1f2"></i>Infiltration</span></div>
+      </div>
+    </section>
+
+    <!-- 09 Overland flow / surface runoff -->
+    <section class="slide" data-layout="scene" data-step="overland" data-title="Overland flow / surface runoff">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 4</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">Liquid transport · 5 / 11</p>
+        <h2>Overland flow → surface runoff</h2>
+        <p>Rain that does not infiltrate flows over the land surface as <span class="em">overland flow</span>.</p>
+        <p class="f">Once it passes through the channel network into rivers, it is called <span class="em">surface runoff</span>. The particles gather downslope into streams and rivers, and finally reach the sea.</p>
+        <p class="note f">Why does rain sometimes produce no overland flow? Try it in the interactive lab on slide 16.</p>
+        <div class="legend3d"><span><i class="dot" style="background:#2b86e0"></i>Overland flow → surface runoff</span></div>
+      </div>
+    </section>
+
+    <!-- 10 Interflow -->
+    <section class="slide" data-layout="scene" data-step="interflow" data-title="Interflow">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 4</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">Liquid transport · 6 / 11</p>
+        <h2>Interflow</h2>
+        <p>Some infiltrated water flows sideways through shallow soil <span class="em">before it reaches the water table</span>, then leaves the ground into a river. This is interflow.</p>
+        <p class="note">The stream on the cut: interflow from the left hillside seeps into it through the bank.</p>
+        <div class="legend3d"><span><i class="dot" style="background:#19b39b"></i>Interflow</span></div>
+      </div>
+    </section>
+
+    <!-- 11 Percolation, groundwater -->
+    <section class="slide" data-layout="scene" data-step="percolation" data-title="Percolation and groundwater">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 4, 6</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">To groundwater · 7–8 / 11</p>
+        <h2>Percolation → groundwater</h2>
+        <p>Some water <span class="em">percolates</span> straight down through the unsaturated zone to below the water table.</p>
+        <p class="f" data-step="groundwater">Water that moves through the aquifer and finally enters a river (or the sea) is <span class="em">groundwater</span>. It moves slowly, so rivers keep flowing in long droughts. Chapter 2 calls it baseflow.</p>
+        <div class="legend3d"><span><i class="dot" style="background:#3f8fe6"></i>Percolation</span><span><i class="dot" style="background:#1747c9"></i>Groundwater</span></div>
+      </div>
+    </section>
+
+    <!-- 12 Exfiltration -->
+    <section class="slide" data-layout="scene" data-step="exfiltration" data-title="Exfiltration">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 6</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">Liquid transport · 9 / 11</p>
+        <h2>Exfiltration</h2>
+        <p>When the <span class="em">topsoil is dry</span>, soil water moves up from deeper layers to the surface. This is exfiltration.</p>
+        <p class="note">The opposite of infiltration: infiltration goes surface → soil; exfiltration goes soil → surface.</p>
+        <div class="legend3d"><span><i class="dot" style="background:#b08a4e"></i>Exfiltration</span></div>
+      </div>
+    </section>
+
+    <!-- 13 Evaporation, transpiration -->
+    <section class="slide" data-layout="scene" data-step="evaporation" data-title="Evaporation and transpiration">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 5–6</span></nav>
+      <div class="card3d" data-inset="left">
+        <p class="kicker">Vapor transport · 10–11 / 11</p>
+        <h2>Evaporation and transpiration</h2>
+        <p><b>Evaporation</b>: in strong sunshine, water molecules in soil or open water (depressions, rivers, lakes, oceans) absorb solar energy and turn <span class="em">from liquid to vapor</span>.</p>
+        <p class="f" data-step="transpiration"><b>Transpiration</b>: soil water rises through <span class="em">plant roots</span> to stems and leaves, then escapes to the atmosphere. Fig. 1-2 combines the two as evapotranspiration <var>ET</var>.</p>
+      </div>
+    </section>
+
+    <!-- 14 Two kinds of transport -->
+    <section class="slide sorter" data-layout="paper" data-title="Vapor vs liquid transport">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 5–6</span></nav>
+      <div class="body">
+        <p class="kicker rise">Wrap-up</p>
+        <h2 class="rise" style="--d:.06s">Two kinds of transport</h2>
+        <p class="rise muted" style="--d:.12s;font-size:26px;margin-top:6px">Press → to sort the 11 terms into the textbook's two lists.</p>
+        <i class="f" data-flag="sorted"></i>
+        <div class="sorter__area">
+          <div class="sorter__col" style="--cx:0px"><p class="sorter__h">Vapor transport</p></div>
+          <div class="sorter__col" style="--cx:560px"><p class="sorter__h">Liquid transport</p></div>
+          <div class="sorter__col sorter__col--other" style="--cx:1120px"><p class="sorter__h">In neither list</p>
+            <p class="sorter__note">Interception and depression storage are temporary storage; percolation is the path water takes to groundwater.</p></div>
+          <span class="chip sorter__chip" style="--x0:0px;--y0:0px;--x1:0px;--y1:90px">Evaporation<small>E</small></span>
+          <span class="chip sorter__chip" style="--x0:255px;--y0:0px;--x1:560px;--y1:90px">Precipitation</span>
+          <span class="chip sorter__chip" style="--x0:505px;--y0:0px;--x1:1120px;--y1:90px">Interception</span>
+          <span class="chip sorter__chip" style="--x0:746px;--y0:0px;--x1:560px;--y1:168px">Overland flow</span>
+          <span class="chip sorter__chip" style="--x0:1011px;--y0:0px;--x1:1120px;--y1:168px">Depression storage</span>
+          <span class="chip sorter__chip" style="--x0:1347px;--y0:0px;--x1:560px;--y1:246px">Infiltration</span>
+          <span class="chip sorter__chip" style="--x0:0px;--y0:78px;--x1:0px;--y1:168px">Transpiration<small>T</small></span>
+          <span class="chip sorter__chip" style="--x0:273px;--y0:78px;--x1:560px;--y1:324px">Exfiltration</span>
+          <span class="chip sorter__chip" style="--x0:495px;--y0:78px;--x1:1120px;--y1:246px">Percolation</span>
+          <span class="chip sorter__chip" style="--x0:725px;--y0:78px;--x1:560px;--y1:402px">Interflow</span>
+          <span class="chip sorter__chip" style="--x0:921px;--y0:78px;--x1:560px;--y1:480px">Groundwater</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 15 Fig. 1-2 -->
+    <section class="slide" data-layout="paper" data-title="Fig. 1-2 Hydrologic cycle diagram">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span><span class="src">Textbook p. 5 · Fig. 1-2 (redrawn)</span></nav>
+      <div class="body flow">
+        <div class="flow__text">
+          <p class="kicker rise">Fig. 1-2 redrawn</p>
+          <h2 class="rise" style="--d:.06s">From rainfall to streamflow</h2>
+          <p class="rise muted" style="--d:.12s;font-size:25px;margin-top:10px">The input at the top is rainfall intensity over time; the output at the bottom is the outlet hydrograph. Each box in between is a process.</p>
+          <ol class="flow__steps">
+            <li class="f" data-fi="1"><span>Precipitation <var>i</var>(<var>t</var>) enters the system</span></li>
+            <li class="f" data-fi="2"><span>Surface: interception, depression storage, overland flow</span></li>
+            <li class="f" data-fi="3"><span>Subsurface: infiltration → interflow, groundwater</span></li>
+            <li class="f" data-fi="4"><span>All join channel flow → hydrograph <var>Q</var>(<var>t</var>)</span></li>
+          </ol>
+        </div>
+        <svg class="flowchart" viewBox="0 0 1100 1000" aria-label="Hydrologic cycle flowchart">
+          <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
+          <!-- 1 Precipitation -->
+          <g class="f fc" data-fi="1">
+            <g class="hyeto" transform="translate(150 10)"><path d="M0 0 V92 H200" class="ax"/>
+              <rect x="12" y="52" width="16" height="40"/><rect x="30" y="30" width="16" height="62"/><rect x="48" y="62" width="16" height="30"/><rect x="66" y="8" width="16" height="84"/><rect x="84" y="40" width="16" height="52"/><rect x="102" y="70" width="16" height="22"/><rect x="120" y="58" width="16" height="34"/><rect x="138" y="80" width="16" height="12"/>
+              <text x="-8" y="16" class="ax-l">i</text><text x="196" y="112" class="ax-l">t</text></g>
+            <rect class="box box--p" x="420" y="16" width="220" height="80" rx="4"/><text class="bt" style="font-size:27px" x="530" y="66">Precipitation</text>
+            <path class="ln" d="M530 96 V130 M110 130 H950"/>
+          </g>
+          <!-- 2 Surface -->
+          <g class="f fc" data-fi="2">
+            <path class="ar" d="M110 130 V196"/><path class="ar" d="M370 130 V196"/><path class="ar" d="M950 130 V196"/>
+            <rect class="box" x="10" y="200" width="200" height="80" rx="4"/><text class="bt" style="font-size:27px" x="110" y="250">Interception</text>
+            <rect class="box" x="270" y="200" width="200" height="80" rx="4"/><text class="bt" style="font-size:27px" x="370" y="234"><tspan x="370" y="234">Depression</tspan><tspan x="370" y="265">storage</tspan></text>
+            <rect class="box" x="850" y="200" width="200" height="80" rx="4"/><text class="bt" style="font-size:27px" x="950" y="234"><tspan x="950" y="234">Overland</tspan><tspan x="950" y="265">flow</tspan></text>
+            <path class="ar ar--v" d="M60 200 V160"/><text class="et" x="40" y="150">E</text>
+            <path class="ar ar--v" d="M440 200 V160"/><text class="et" x="460" y="168">ET</text>
+          </g>
+          <!-- 3 Subsurface -->
+          <g class="f fc" data-fi="3">
+            <path class="ar" d="M630 130 V346"/><path class="ar" d="M370 280 V380 H516"/>
+            <rect class="box" x="520" y="350" width="220" height="80" rx="4"/><text class="bt" style="font-size:27px" x="630" y="400">Infiltration</text>
+            <path class="ar" d="M560 430 V470 H310 V496"/><path class="ar" d="M690 430 V556"/>
+            <rect class="box" x="210" y="500" width="200" height="80" rx="4"/><text class="bt" style="font-size:27px" x="310" y="550">Interflow</text>
+            <rect class="box" x="590" y="560" width="200" height="80" rx="4"/><text class="bt" style="font-size:27px" x="690" y="610">Groundwater</text>
+            <path class="ar ar--v" d="M230 500 V462"/><text class="et" x="170" y="470">ET</text>
+            <path class="ar ar--v" d="M790 600 H846"/><text class="et" x="856" y="608">ET</text>
+          </g>
+          <!-- 4 Channel flow and hydrograph -->
+          <g class="f fc" data-fi="4">
+            <path class="ar" d="M310 580 V706 H556"/><path class="ar" d="M690 640 V686"/><path class="ar" d="M950 280 V730 H804"/>
+            <rect class="box box--q" x="560" y="690" width="240" height="80" rx="4"/><text class="bt" style="font-size:27px" x="680" y="740">Channel flow</text>
+            <path class="ar" d="M680 770 V808"/>
+            <g transform="translate(590 812)"><path d="M0 0 V170 H210" class="ax"/><path d="M0 150 C30 150 44 30 72 30 C104 30 120 140 206 156" class="hydro"/>
+              <text x="-30" y="22" class="ax-l">Q</text><text x="214" y="178" class="ax-l">t</text></g>
+            <circle r="7" class="drop drop--s"><animateMotion dur="3.2s" repeatCount="indefinite" path="M950 130 V730 H804"/></circle>
+            <circle r="7" class="drop drop--i"><animateMotion dur="3.6s" repeatCount="indefinite" path="M630 130 V430 M560 430 V470 H310 V706 H556"/></circle>
+            <circle r="7" class="drop drop--g"><animateMotion dur="4.6s" repeatCount="indefinite" path="M630 130 V430 M690 430 V690"/></circle>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- 16 Interactive lab -->
+    <section class="slide" data-layout="lab" data-step="lab" data-labels="off" data-interactive="true" data-title="Lab: a storm's water budget">
+      <nav class="crumb crumb--lab"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span></nav>
+      <div class="lab-card no-wheel" data-inset="left">
+        <p class="kicker">Interactive lab</p>
+        <h2>A storm's water budget</h2>
+        <p>The sliders on the right control the rain and the soil; the 3D view, the equation and the hydrograph below change together. Try to:</p>
+        <ol class="tasks" id="tasks">
+          <li data-task="noOverland"><span>Make all the rain infiltrate, with no overland flow (compare <var>i</var> and <var>f</var>)</span></li>
+          <li data-task="interflow"><span>Fill the soil to produce interflow (<var>F</var> must exceed <var>S</var><sub>e</sub>)</span></li>
+          <li data-task="peak"><span>Push the outlet peak flow above 30 mm/hr</span></li>
+        </ol>
+        <button class="reset" type="button" id="resetParams">Reset</button>
+      </div>
+      <div class="chart-card no-wheel" data-inset="left">
+        <p class="kicker" style="font-size:15px">04 Rainfall &amp; hydrograph · Figs. 1-2, 2-9</p>
+        <canvas class="chart" id="chart" aria-label="Hyetograph and hydrograph"></canvas>
+        <p class="legend"><span><i class="lg lg--qs"></i>Surface runoff</span><span><i class="lg lg--qi"></i>Interflow</span><span><i class="lg lg--qg"></i>Groundwater</span><span><i class="lg lg--f"></i>Infiltration capacity <var>f</var></span></p>
+        <p class="ph__derived" data-o="peak"></p>
+      </div>
+      <aside class="phys no-wheel" id="phys" data-inset="right" aria-label="Physical parameters"></aside>
+    </section>
+
+    <!-- 17 Self-check -->
+    <section class="slide" data-layout="paper" data-title="Self-check">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span></nav>
+      <div class="body">
+        <p class="kicker rise">Self-check</p>
+        <h2 class="rise" style="--d:.06s">Three quick questions</h2>
+        <div class="quiz" style="margin-top:34px">
+          <div class="q rise" style="--d:.15s" data-answer="Interflow">
+            <p class="q__stem"><span class="no">01</span>Rain soaks into the soil, then flows sideways into a river before reaching the water table. What is this called?</p>
+            <div class="q__opts"><button type="button">Percolation</button><button type="button">Interflow</button><button type="button">Exfiltration</button><button type="button">Overland flow</button></div>
+            <p class="q__fb" data-why="Interflow leaves sideways before it reaches the water table; percolation goes down to below the water table."></p>
+          </div>
+          <div class="q rise" style="--d:.25s" data-answer="Transpiration">
+            <p class="q__stem"><span class="no">02</span>Which of these is vapor transport?</p>
+            <div class="q__opts"><button type="button">Exfiltration</button><button type="button">Transpiration</button><button type="button">Infiltration</button><button type="button">Precipitation</button></div>
+            <p class="q__fb" data-why="The textbook lists only two vapor-transport processes: evaporation and transpiration. The other three options are liquid transport."></p>
+          </div>
+          <div class="q rise" style="--d:.35s" data-num="5" data-tol="0.05">
+            <p class="q__stem"><span class="no">03</span>During a storm, <var>P</var> = 120 mm, infiltration <var>INF</var> = 58 mm and surface runoff <var>Q</var> = 57 mm; ignore <var>E</var> and <var>T</var>.<br>By Eq. (1-2), what is the change in surface storage Δ<var>S</var><sub>s</sub>?</p>
+            <div class="q__num"><input type="text" inputmode="decimal" aria-label="Answer (mm)"><span>mm</span><button type="button">Check</button></div>
+            <p class="q__fb" data-why="Δ𝑆s = 120 − (0 + 0 + 58 + 57) = 5 mm. These 5 mm are held for a while in interception and depression storage."></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 18 Summary -->
+    <section class="slide" data-layout="paper" data-title="Summary">
+      <nav class="crumb"><a href="../../">Hydrology</a><span>›</span><span>1-1 The Hydrologic Cycle</span></nav>
+      <div class="body cols cols-73">
+        <div>
+          <p class="kicker rise">Summary</p>
+          <h2 class="rise" style="--d:.06s">Three takeaways</h2>
+          <ol class="goal-list">
+            <li class="rise" style="--d:.15s">Hydrology studies the occurrence, circulation and distribution of water; engineering hydrology uses it to set design criteria and assess risk.</li>
+            <li class="rise" style="--d:.25s">Rain on the ground takes a surface path (interception, depression storage, overland flow) and a subsurface path (infiltration → interflow, percolation → groundwater); both end up as streamflow.</li>
+            <li class="rise" style="--d:.35s">Only evaporation and transpiration are vapor transport; precipitation, overland flow, infiltration, exfiltration, interflow and groundwater are liquid transport.</li>
+          </ol>
+        </div>
+        <div class="next rise" style="--d:.5s">
+          <p class="kicker">Next unit</p>
+          <p class="next__t" style="text-wrap:balance">1-2 The Water Budget Equation</p>
+          <p class="muted" style="font-size:24px">Write this unit's water budget as Eqs. (1-1)–(1-4) and solve Example 1.1.</p>
+          <p class="src" style="margin-top:24px"><a href="../u1-2/">Go to 1-2 →</a></p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+<script type="module" src="../../../ch01/u1-1/main.js"></script>
+</body>
+</html>

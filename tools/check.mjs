@@ -37,7 +37,8 @@ function check(from, ref, what) {
   const clean = ref.split('#')[0].split('?')[0];
   if (!clean) return;
   let target = path.resolve(path.dirname(from), decodeURI(clean));
-  if (clean.endsWith('/')) target = path.join(target, 'index.html');
+  // 資料夾：網頁連結要有 index.html；JS 用 new URL() 指到的資料夾（例如 data/）只要存在就好
+  if (clean.endsWith('/')) { if (what === 'URL') { if (!fs.existsSync(target)) errors.push(`${rel(from)}：${what} 找不到資料夾 ${ref}`); return; } target = path.join(target, 'index.html'); }
   if (!fs.existsSync(target)) errors.push(`${rel(from)}：${what} 找不到 ${ref}`);
 }
 for (const f of files) {

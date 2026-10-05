@@ -4,6 +4,8 @@
 // - 網址 #/5/2 代表第 5 頁、第 2 段（從 1 起算），可直接分享或重新整理後回到原處
 // - 鍵盤：→ ↓ 空白鍵 PageDown 下一步；← ↑ PageUp 上一步；Home／End；G 或 Esc 總覽；F 全螢幕
 
+import { tr } from './i18n.js';
+
 export class Deck {
   constructor(root, { onChange = () => {} } = {}) {
     this.root = root;
@@ -166,15 +168,15 @@ export class Deck {
   buildUI() {
     const ui = document.createElement('nav');
     ui.className = 'deck__ui';
-    ui.setAttribute('aria-label', '投影片導覽');
+    ui.setAttribute('aria-label', tr('投影片導覽', 'Slide navigation'));
     ui.innerHTML = `
       <div class="deck__bar"><i></i></div>
-      <button class="deck__btn deck__prev" type="button" aria-label="上一步">←</button>
+      <button class="deck__btn deck__prev" type="button" aria-label="${tr('上一步', 'Previous')}">←</button>
       <span class="deck__count"></span>
-      <button class="deck__btn deck__next" type="button" aria-label="下一步">→</button>
-      <button class="deck__btn deck__grid" type="button" aria-label="投影片總覽" title="總覽（G）">▦</button>
+      <button class="deck__btn deck__next" type="button" aria-label="${tr('下一步', 'Next')}">→</button>
+      <button class="deck__btn deck__grid" type="button" aria-label="${tr('投影片總覽', 'Slide overview')}" title="${tr('總覽（G）', 'Overview (G)')}">▦</button>
       ${this.root.dataset.video ? '<button class="deck__btn deck__video" type="button" aria-label="播放教學影片" title="教學影片（V）">▶</button>' : ''}
-      <button class="deck__btn deck__full" type="button" aria-label="全螢幕" title="全螢幕（F）">⛶</button>`;
+      <button class="deck__btn deck__full" type="button" aria-label="${tr('全螢幕', 'Full screen')}" title="${tr('全螢幕（F）', 'Full screen (F)')}">⛶</button>`;
     this.root.appendChild(ui);
     this.ui = {
       bar: ui.querySelector('.deck__bar i'), count: ui.querySelector('.deck__count'),

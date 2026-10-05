@@ -1,6 +1,8 @@
 // 每個單元共用：自我檢查、影片擷取模式的掛鉤、3D 左右留白計算
 // 影片工具（tools/make_video.py）會用到：window.deck、window.__ready、window.quizReveal、window.lab、window.unitActs
 
+import { tr, stageName } from './i18n.js';
+
 export const isCapture = new URLSearchParams(location.search).has('capture');
 
 export function setupCapture(root, deck) {
@@ -24,7 +26,7 @@ export function setupQuiz() {
     const fb = q.querySelector('.q__fb');
     const show = (ok, picked) => {
       fb.className = `q__fb ${ok ? 'ok' : 'no'}`;
-      fb.textContent = (ok ? '答對了。' : `再想想${picked ? `：「${picked}」不對` : ''}。`) + (ok ? fb.dataset.why : '');
+      fb.textContent = (ok ? tr('答對了。', 'Correct. ') : tr(`再想想${picked ? `：「${picked}」不對` : ''}。`, `Not quite${picked ? ` — “${picked}” isn't it` : ''}. Try again.`)) + (ok ? fb.dataset.why : '');
     };
     if (q.dataset.answer) {
       q.querySelectorAll('.q__opts button').forEach((b) => b.addEventListener('click', () => {
@@ -58,6 +60,6 @@ export function progressTo(loading, stageEl) {
   return (stage, p) => {
     const [a, b] = STAGE_WEIGHT[stage] || [0, 1];
     loading.style.setProperty('--p', `${(a + (b - a) * p) * 100}%`);
-    if (stageEl) stageEl.textContent = `${stage} ${Math.round(p * 100)}%`;
+    if (stageEl) stageEl.textContent = `${stageName(stage)} ${Math.round(p * 100)}%`;
   };
 }

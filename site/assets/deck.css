@@ -63,6 +63,10 @@ sup { vertical-align: .5em; }
 .deck[data-layout="scene"] .crumb, .deck[data-layout="title"] .crumb, .deck[data-layout="lab"] .crumb { color: #2a3135; padding: 6px 18px; border-radius: 999px;
   background: rgba(255,255,255,.58); border: 1px solid rgba(255,255,255,.75); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); top: 32px; left: 56px; }
 .crumb .src { font-family: var(--mono); font-size: 17px; }
+/* 互動實驗頁：左上角也放回首頁的麵包屑，說明卡往下讓位（錄影時隱藏，畫面維持原樣） */
+.slide[data-layout="lab"] .crumb--lab { top: 34px; left: 40px; }
+.deck:not(.is-capture) .slide[data-layout="lab"] .lab-card { top: 92px; }
+.deck.is-capture .crumb--lab { display: none; }
 
 /* ---- 版型：封面（3D 背景）---- */
 .slide[data-layout="title"] .title-block { position: absolute; left: 84px; bottom: 96px; max-width: 1120px; padding: 36px 50px 32px;

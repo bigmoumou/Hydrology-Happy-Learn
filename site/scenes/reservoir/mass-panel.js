@@ -1,6 +1,7 @@
 // 單元 1-3 互動實驗：流量累積曲線（Mass curve，Rippl 法）決定水庫容量
 // 資料：課本第 1 章習題 8 的月平均流量（m³/s），重複兩年；需水量 D 固定
 // 容量單位用「(m³/s)·月」：1 (m³/s)·月 ≈ 2.592 × 10⁶ m³（以 30 天計）
+import { tr, EN } from '../../assets/i18n.js';
 
 export const FLOWS = [60, 45, 35, 25, 15, 22, 50, 80, 105, 90, 80, 70];
 const MEAN = FLOWS.reduce((a, b) => a + b, 0) / 12;
@@ -21,21 +22,21 @@ export function requiredStorage(D) {
 export function mountMass({ phys, chart, tasks, rv, monthsPerSec = 1.2 }) {
   phys.innerHTML = `
     <header class="phys__head">
-      <p class="phys__eyebrow">PARAMETERS · 習題 8 的月流量</p>
-      <h3 class="phys__title">流量累積曲線決定水庫容量</h3>
-      <label class="phys__sim"><input type="checkbox" data-k="sim" checked> 3D 水位跟著操作模擬</label>
+      <p class="phys__eyebrow">PARAMETERS · ${tr(`習題 8 的月流量`, `EXERCISE 8 FLOWS`)}</p>
+      <h3 class="phys__title">${tr(`流量累積曲線決定水庫容量`, `Sizing a reservoir with the mass curve`)}</h3>
+      <label class="phys__sim"><input type="checkbox" data-k="sim" checked> ${tr(`3D 水位跟著操作模擬`, `3D water level follows operation`)}</label>
     </header>
     <section class="ph">
-      <h4><span class="ph__no">01</span>河川月流量 <em>m³/s</em></h4>
+      <h4><span class="ph__no">01</span>${tr(`河川月流量`, `Monthly river flow`)} <em>m³/s</em></h4>
       <div class="months" data-o="months"></div>
-      <p class="ph__derived">平均流量 <b>${MEAN.toFixed(1)}</b> m³/s；最小 <b>${Math.min(...FLOWS)}</b> m³/s（5 月）</p>
+      <p class="ph__derived">${tr(`平均流量 <b>${MEAN.toFixed(1)}</b> m³/s；最小 <b>${Math.min(...FLOWS)}</b> m³/s（5 月）`, `Mean <b>${MEAN.toFixed(1)}</b> m³/s; minimum <b>${Math.min(...FLOWS)}</b> m³/s (May)`)}</p>
     </section>
     <section class="ph">
-      <h4><span class="ph__no">02</span>固定需水量 <em>demand</em></h4>
-      <div class="sl"><label>需水量 <var>D</var></label><output data-o="D"></output><input type="range" data-k="D" min="5" max="60" step="1" aria-label="需水量"></div>
+      <h4><span class="ph__no">02</span>${tr(`固定需水量 <em>demand</em>`, `Constant demand`)}</h4>
+      <div class="sl"><label>${tr(`需水量`, `Demand`)} <var>D</var></label><output data-o="D"></output><input type="range" data-k="D" min="5" max="60" step="1" aria-label="${tr(`需水量`, `Demand`)}"></div>
     </section>
     <section class="ph">
-      <h4><span class="ph__no">03</span>需要的水庫容量 <em>Rippl 法</em></h4>
+      <h4><span class="ph__no">03</span>${tr(`需要的水庫容量 <em>Rippl 法</em>`, `Required storage <em>Rippl method</em>`)}</h4>
       <div class="eq"><span class="eq__f" data-o="K"></span><span class="eq__n" data-o="Km3"></span></div>
       <ul class="checks" data-o="checks"></ul>
     </section>`;
@@ -65,11 +66,11 @@ export function mountMass({ phys, chart, tasks, rv, monthsPerSec = 1.2 }) {
     res = requiredStorage(P.D);
     const K = res.feasible ? res.K : Infinity;
     q('[data-o="K"]').innerHTML = res.feasible
-      ? (res.K <= 1e-9 ? `<var>K</var> = 0：每個月流量都夠，不需要水庫` : `<var>K</var> = 最大累積虧缺 = <b>${res.K.toFixed(0)}</b> (m³/s)·月`)
-      : `<var>D</var> 超過平均流量，蓋多大的水庫都不夠`;
-    q('[data-o="Km3"]').textContent = res.feasible && res.K > 0 ? `≈ ${(res.K * 2.592).toFixed(0)} × 10⁶ m³（每月以 30 天計）` : '';
+      ? (res.K <= 1e-9 ? tr(`<var>K</var> = 0：每個月流量都夠，不需要水庫`, `<var>K</var> = 0: every month meets the demand, no reservoir needed`) : tr(`<var>K</var> = 最大累積虧缺 = <b>${res.K.toFixed(0)}</b> (m³/s)·月`, `<var>K</var> = max cumulative deficit = <b>${res.K.toFixed(0)}</b> (m³/s)·month`))
+      : tr(`<var>D</var> 超過平均流量，蓋多大的水庫都不夠`, `<var>D</var> exceeds the mean flow: no reservoir is big enough`);
+    q('[data-o="Km3"]').textContent = res.feasible && res.K > 0 ? tr(`≈ ${(res.K * 2.592).toFixed(0)} × 10⁶ m³（每月以 30 天計）`, `≈ ${(res.K * 2.592).toFixed(0)} × 10⁶ m³ (30-day months)`) : '';
     q('[data-o="checks"]').innerHTML = res.feasible && res.K > 0
-      ? `<li class="yes"><span>關鍵期：第 ${res.crit[0] % 12 + 1} 月到第 ${res.crit[1] % 12 + 1} 月，流量連續低於需水量</span></li>`
+      ? `<li class="yes"><span>${tr(`關鍵期：第 ${res.crit[0] % 12 + 1} 月到第 ${res.crit[1] % 12 + 1} 月，流量連續低於需水量`, `Critical period: month ${res.crit[0] % 12 + 1} to month ${res.crit[1] % 12 + 1}, flow stays below demand`)}</span></li>`
       : '';
     run = operate(P.D, res.feasible ? res.K : 1e9);
     if (tasks) {
@@ -115,14 +116,15 @@ export function mountMass({ phys, chart, tasks, rv, monthsPerSec = 1.2 }) {
       g.beginPath(); g.moveTo(X(mb), Y(vb)); g.lineTo(X(mb), Y(vd)); g.stroke();
       g.beginPath(); g.moveTo(X(mb) - 7, Y(vb)); g.lineTo(X(mb) + 7, Y(vb)); g.moveTo(X(mb) - 7, Y(vd)); g.lineTo(X(mb) + 7, Y(vd)); g.stroke();
       g.fillStyle = '#2c9a5b'; g.textAlign = 'left'; g.fillText(`K = ${res.K.toFixed(0)}`, X(mb) + 10, (Y(vb) + Y(vd)) / 2 + 5);
-      g.fillStyle = '#c26a1d'; g.fillText(`需水線（斜率 D = ${P.D}）`, X(m0) + 8, Y(v0) - 8);
     }
     g.strokeStyle = ink; g.globalAlpha = 0.6; g.lineWidth = 1; g.beginPath(); g.moveTo(l, top); g.lineTo(l, h - bot); g.lineTo(w - r, h - bot); g.stroke(); g.globalAlpha = 1;
     g.fillStyle = ink; g.textAlign = 'center';
     for (let m = 0; m <= 24; m += 3) g.fillText(m === 0 ? '0' : `${m}`, X(m), h - bot + 20);
     g.textAlign = 'right'; g.fillText(`${C[24]}`, l - 6, top + 10); g.fillText('0', l - 6, h - bot + 4);
-    g.save(); g.translate(16, (top + h - bot) / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText('累積流量 (m³/s)·月', 0, 0); g.restore();
-    g.textAlign = 'right'; g.fillText('月', w - r, h - bot + 20);
+    g.save(); g.translate(16, (top + h - bot) / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText(tr('累積流量 (m³/s)·月', 'Cumulative flow (m³/s)·month'), 0, 0); g.restore();
+    // 時間單位：中文「月」放在最後一個刻度旁；英文字較長，放在 x 軸線上方的右下角（那裡曲線已經很高，不會擋到）
+    g.textAlign = 'right';
+    if (EN) g.fillText('months', w - r, h - bot - 6); else g.fillText('月', w - r, h - bot + 20);
   }
   function drawFrame(mon) {
     if (!g0) return;

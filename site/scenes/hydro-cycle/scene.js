@@ -2,6 +2,7 @@
 // 用法：const api = await createHydroCycle(container, { onProgress, quality })
 // 所有動態只由時間 t 決定：互動時 t 跟著時鐘走；做影片時呼叫 api.render(t) 逐格輸出。
 import * as THREE from 'three';
+import { labelText } from '../../assets/i18n.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { Sky } from 'three/addons/objects/Sky.js';
@@ -1270,7 +1271,8 @@ export async function createHydroCycle(container, opts = {}) {
     const el = document.createElement('div');
     el.className = 'hc-label';
     el.dataset.id = id;
-    el.innerHTML = `<span class="hc-label__box"><span class="hc-label__zh">${zh}</span><span class="hc-label__en">${en}</span></span>`;
+    const [main, sub] = labelText(zh, en);
+    el.innerHTML = `<span class="hc-label__box"><span class="hc-label__zh">${main}</span>${sub ? `<span class="hc-label__en">${sub}</span>` : ''}</span>`;
     const obj = new CSS2DObject(el);
     obj.position.set(...p);
     obj.center.set(0.5, 1.15);

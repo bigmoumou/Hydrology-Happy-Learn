@@ -2,6 +2,7 @@
 // 1 單位 = 1 km，島中心在原點；高程乘上垂直誇大
 // 模式：'relief' 一般地形色、'bands' 三種地形分區（>1000、100–1000、<100 m）、'lumped' 集塊、'grid' 分佈（網格）
 import * as THREE from 'three';
+import { tr, labelText } from '../../assets/i18n.js';
 import { createStage, GLSL_NOISE, addPlinth } from '../lib/stage.js';
 import { makeWaterNormal } from '../lib/textures.js';
 
@@ -154,12 +155,12 @@ export async function createTaiwan(container, { base = '../../data/', exaggerati
   };
   const place = (zh, en, lon, lat, dy = 4) => { const [x, z] = toXZ(lon, lat); const l = stage.label(zh, en, [x, yAt(x, z) + dy, z]); l.lonlat = [lon, lat, dy]; return l; };
   const labels = {
-    yushan: place('玉山', '3952 m', 120.957, 23.47, 3),
-    cmr: place('中央山脈', 'Central Range', 121.2, 24.1, 6),
-    plain: place('嘉南平原', 'Chianan Plain', 120.25, 23.25, 4),
-    tropic: stage.label('北迴歸線 23.5°N', 'Tropic of Cancer', [tx0 + 40, 12, tz - 3]),
-    strait: place('台灣海峽', 'Taiwan Strait', 119.95, 24.2, 2),
-    pacific: place('太平洋', 'Pacific Ocean', 122.0, 23.0, 2),
+    yushan: place(tr('玉山', 'Yushan'), '3952 m', 120.957, 23.47, 3),
+    cmr: place(...labelText('中央山脈', 'Central Range'), 121.2, 24.1, 6),
+    plain: place(...labelText('嘉南平原', 'Chianan Plain'), 120.25, 23.25, 4),
+    tropic: stage.label(...labelText('北迴歸線 23.5°N', 'Tropic of Cancer', 'Tropic of Cancer 23.5°N'), [tx0 + 40, 12, tz - 3]),
+    strait: place(...labelText('台灣海峽', 'Taiwan Strait'), 119.95, 24.2, 2),
+    pacific: place(...labelText('太平洋', 'Pacific Ocean'), 122.0, 23.0, 2),
   };
   const labelSets = {
     'tw-hero': [], 'tw-top': ['tropic', 'strait', 'pacific'], 'tw-bands': ['yushan', 'cmr', 'plain'], 'tw-mtn': ['yushan', 'cmr'], 'tw-east': ['pacific', 'cmr'], 'tw-model': [],

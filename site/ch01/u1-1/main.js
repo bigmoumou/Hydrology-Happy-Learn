@@ -2,6 +2,7 @@ import { Deck } from '../../assets/deck.js';
 import { createHydroCycle } from '../../scenes/hydro-cycle/scene.js';
 import { mountPanel } from '../../scenes/hydro-cycle/panel.js';
 import { setupCapture, markReady, setupQuiz } from '../../assets/unit-common.js';
+import { stageName } from '../../assets/i18n.js';
 
 const root = document.querySelector('.deck');
 const bg = document.getElementById('bg3d');
@@ -22,7 +23,7 @@ createHydroCycle(bg, {
   onProgress(stage, p) {
     const [a, b] = STAGE_WEIGHT[stage] || [0, 1];
     loading.style.setProperty('--p', `${(a + (b - a) * p) * 100}%`);
-    document.getElementById('loadStage').textContent = `${stage} ${Math.round(p * 100)}%`;
+    document.getElementById('loadStage').textContent = `${stageName(stage)} ${Math.round(p * 100)}%`;
   },
 }).then((a) => {
   api = a;

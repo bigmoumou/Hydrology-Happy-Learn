@@ -1,6 +1,7 @@
 // 水庫場景：峽谷大壩＋樹枝狀水庫＋入流河、出流河；前切面是水庫縱剖面
 // 用法：const rv = await createReservoir(container, { onProgress })；rv.setLevel(L)、rv.setFlows({ I, O, spill })
 import * as THREE from 'three';
+import { labelText } from '../../assets/i18n.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createStage, strataMaterial, buildBlockFaces, arrowMesh, GLSL_NOISE } from '../lib/stage.js';
 import { mulberry32, createNoise2D, smoothstep, clamp, lerp } from '../lib/noise.js';
@@ -376,11 +377,11 @@ export async function createReservoir(container, opts = {}) {
   arrS.position.set(-14, 11, -8);
   scene.add(arrI, arrO, arrS);
   const labels = {
-    inflow: stage.label('入流 I', 'inflow', [-54, thalAt(-54) + 6.2, -1.2]),
-    outflow: stage.label('出流 O', 'outflow', [damX + 25, thalAt(damX + 25) + 6.2, -1.2]),
-    storage: stage.label('蓄水量 S', 'storage', [-20, 12, -10]),
-    dam: stage.label('大壩', 'dam', [damX + 0.7, crest + 0.9, -5.6]),
-    spill: stage.label('溢洪道', 'spillway', [damX + 4.6, spill - 2.6, (spZ0 + spZ1) / 2]),
+    inflow: stage.label(...labelText('入流 I', 'inflow', 'Inflow I'), [-54, thalAt(-54) + 6.2, -1.2]),
+    outflow: stage.label(...labelText('出流 O', 'outflow', 'Outflow O'), [damX + 25, thalAt(damX + 25) + 6.2, -1.2]),
+    storage: stage.label(...labelText('蓄水量 S', 'storage', 'Storage S'), [-20, 12, -10]),
+    dam: stage.label(...labelText('大壩', 'dam'), [damX + 0.7, crest + 0.9, -5.6]),
+    spill: stage.label(...labelText('溢洪道', 'spillway'), [damX + 4.6, spill - 2.6, (spZ0 + spZ1) / 2]),
   };
   const showArrows = { value: true };
 

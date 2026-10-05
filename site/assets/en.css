@@ -1,0 +1,25 @@
+/* 英文版專用微調：只有 /en/ 底下的頁面載入這個檔案，中文頁與錄影完全不受影響。
+   中文的字距、不換行標題是為方塊字設計的；英文字較長，標題要能換行、字距歸零。 */
+/* 中文字型裡的彎引號、破折號、刪節號是全形的（英文會變成「Taiwan’ s」）：這幾個標點改用系統的西文字型 */
+@font-face { font-family: "Latin Punct"; src: local("Segoe UI"), local("SegoeUI"), local("Helvetica Neue"), local("HelveticaNeue"), local("Arial"); unicode-range: U+2010-2027; }
+@font-face { font-family: "Latin Punct Serif"; src: local("Georgia"), local("Times New Roman"), local("TimesNewRomanPSMT"); unicode-range: U+2010-2027; }
+:root { --font: "Latin Punct", "Hydro Sans", "Noto Sans TC", system-ui, sans-serif; --serif: "Latin Punct Serif", "Hydro Serif", "Noto Serif TC", serif; }
+body { font-feature-settings: normal; }
+.slide h1, .slide h2, .slide h3 { letter-spacing: 0; }
+.slide[data-layout="title"] h1 { white-space: normal; font-size: 84px; line-height: 1.08; letter-spacing: 0; }
+.slide[data-layout="title"] .lede { font-size: 29px; }
+.slide p, .slide li, .phys, .lab-card, .card3d { hyphens: auto; -webkit-hyphens: auto; }
+.kicker { letter-spacing: .1em; }
+.card3d h2 { font-size: 50px; line-height: 1.12; }
+.card3d { font-size: 26px; line-height: 1.5; }
+.card3d .note { font-size: 21px; }
+.lab-card h2 { font-size: 34px; line-height: 1.15; }
+.big-def { font-size: 36px; }
+.hc-label__zh { letter-spacing: .01em; }
+.entry button { font-size: 23px; }
+/* 右側參數面板：英文句子較長，間距收緊一點，避免最下面被切掉 */
+.phys .ph { padding-top: 8px; padding-bottom: 8px; }
+.phys .ph__note { line-height: 1.38; }
+.phys .checks li { line-height: 1.3; }
+/* 標題平均換行，避免最後一個字單獨掉到下一行 */
+.slide h1, .slide h2, .next__t, .card3d h2, .lab-card h2 { text-wrap: balance; }

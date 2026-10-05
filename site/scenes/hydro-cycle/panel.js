@@ -1,5 +1,6 @@
 // 右側物理參數面板＋歷線圖：滑桿 → 示意模型 → 式子帶入數字、Horton 四種情況、歷線、3D 強度
 import { simulate, intensities, DEFAULTS } from './model.js';
+import { tr } from '../../assets/i18n.js';
 
 const fmt = (v, d = 1) => (Math.abs(v) < 0.05 && d === 1 ? '0' : v.toFixed(d));
 const C = { qs: '#2b86e0', qi: '#19b39b', qg: '#1747c9', rain: '#8796a3', f: '#a5631a' };
@@ -14,23 +15,23 @@ const esc = (t) => t.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 1.5, initial = {} }) {
   phys.innerHTML = `
     <header class="phys__head">
-      <p class="phys__eyebrow">PARAMETERS · 教學示意模型</p>
-      <h3 class="phys__title">一場降雨的水帳</h3>
-      <label class="phys__sim"><input type="checkbox" data-k="sim" checked> 3D 畫面跟著參數模擬</label>
+      <p class="phys__eyebrow">PARAMETERS · ${tr(`教學示意模型`, `SIMPLIFIED MODEL`)}</p>
+      <h3 class="phys__title">${tr(`一場降雨的水帳`, `Water budget of one storm`)}</h3>
+      <label class="phys__sim"><input type="checkbox" data-k="sim" checked> ${tr(`3D 畫面跟著參數模擬`, `3D view follows the model`)}</label>
     </header>
     <section class="ph">
-      <h4><span class="ph__no">01</span>降雨 <em>precipitation</em></h4>
-      <div class="sl"><label>降雨強度 <var>i</var></label><output data-o="i"></output><input type="range" data-k="i" min="0" max="80" step="1" aria-label="降雨強度 i"></div>
-      <div class="sl"><label>降雨延時 <var>t</var><sub>r</sub></label><output data-o="tr"></output><input type="range" data-k="tr" min="0.5" max="12" step="0.5" aria-label="降雨延時"></div>
+      <h4><span class="ph__no">01</span>${tr(`降雨 <em>precipitation</em>`, `Rainfall`)}</h4>
+      <div class="sl"><label>${tr(`降雨強度`, `Rainfall intensity`)} <var>i</var></label><output data-o="i"></output><input type="range" data-k="i" min="0" max="80" step="1" aria-label="${tr(`降雨強度 i`, `Rainfall intensity i`)}"></div>
+      <div class="sl"><label>${tr(`降雨延時`, `Rainfall duration`)} <var>t</var><sub>r</sub></label><output data-o="tr"></output><input type="range" data-k="tr" min="0.5" max="12" step="0.5" aria-label="${tr(`降雨延時`, `Rainfall duration`)}"></div>
       <p class="ph__derived" data-o="P"></p>
     </section>
     <section class="ph">
-      <h4><span class="ph__no">02</span>土壤 <em>soil</em></h4>
-      <div class="sl"><label>入滲容量 <var>f</var></label><output data-o="f"></output><input type="range" data-k="f" min="2" max="60" step="1" aria-label="入滲容量 f"></div>
-      <div class="sl"><label>土壤水份有效容量 <var>S</var><sub>e</sub></label><output data-o="Se"></output><input type="range" data-k="Se" min="10" max="200" step="5" aria-label="土壤水份有效容量"></div>
+      <h4><span class="ph__no">02</span>${tr(`土壤 <em>soil</em>`, `Soil`)}</h4>
+      <div class="sl"><label>${tr(`入滲容量`, `Infiltration capacity`)} <var>f</var></label><output data-o="f"></output><input type="range" data-k="f" min="2" max="60" step="1" aria-label="${tr(`入滲容量 f`, `Infiltration capacity f`)}"></div>
+      <div class="sl"><label>${tr(`土壤水份有效容量`, `Available soil-water capacity`)} <var>S</var><sub>e</sub></label><output data-o="Se"></output><input type="range" data-k="Se" min="10" max="200" step="5" aria-label="${tr(`土壤水份有效容量`, `Available soil-water capacity`)}"></div>
       <p class="ph__derived" data-o="F"></p>
       <ul class="checks" data-o="checks"></ul>
-      <div class="horton" aria-label="Horton 四種情況（課本圖 2-12）">${HORTON.map(([id, cap, d]) => `
+      <div class="horton" aria-label="${tr(`Horton 四種情況（課本圖 2-12）`, `Horton's four cases (textbook Fig. 2-12)`)}">${HORTON.map(([id, cap, d]) => `
         <figure data-case="${id}"><svg viewBox="0 0 42 26" aria-hidden="true">
           <path d="M1 1 V25 H41" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1"/>
           <path d="M2 8 L40 22" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="2 2" stroke-width="1"/>
@@ -39,7 +40,7 @@ export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 1.5, init
       </div>
     </section>
     <section class="ph">
-      <h4><span class="ph__no">03</span>水文平衡 <em>water budget</em></h4>
+      <h4><span class="ph__no">03</span>${tr(`水文平衡 <em>water budget</em>`, `Water budget`)}</h4>
       <div class="eq" data-o="eq12"></div>
       <div class="eq" data-o="eq13"></div>
       <div class="eq" data-o="eq14"></div>
@@ -61,28 +62,28 @@ export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 1.5, init
   function recompute() {
     sim = simulate(P);
     const T = sim.tot;
-    q('[data-o="P"]').innerHTML = `降雨量 <var>P</var> = <var>i</var> × <var>t</var><sub>r</sub> = ${P.i} × ${P.tr} = <b>${fmt(T.P)} mm</b>`;
+    q('[data-o="P"]').innerHTML = `${tr(`降雨量`, `Rainfall depth`)} <var>P</var> = <var>i</var> × <var>t</var><sub>r</sub> = ${P.i} × ${P.tr} = <b>${fmt(T.P)} mm</b>`;
     // 累積入滲量 F：降雨期間滲進土壤的總水深。一開始的 Sc 先被截留＋窪蓄接住；之後每小時最多滲 min(i, f)
     const Sc = sim.params.Sc;
     q('[data-o="F"]').innerHTML = T.P <= Sc
-      ? `累積入滲量 <var>F</var> = 0（雨量不到 <var>S</var><sub>c</sub> = ${Sc} mm，全被截留＋窪蓄接住）`
+      ? tr(`累積入滲量 <var>F</var> = 0（雨量不到 <var>S</var><sub>c</sub> = ${Sc} mm，全被截留＋窪蓄接住）`, `Cumulative infiltration <var>F</var> = 0 (rain is less than <var>S</var><sub>c</sub> = ${Sc} mm; interception and depression storage hold it all)`)
       : P.i > P.f
-        ? `累積入滲量 <var>F</var> = <var>f</var> × (<var>t</var><sub>r</sub> − <var>S</var><sub>c</sub> ÷ <var>i</var>) = ${P.f} × (${P.tr} − ${Sc} ÷ ${P.i}) = <b>${fmt(T.F)} mm</b>
-           <span class="ph__note">雨比土壤吸得快，每小時只滲得進 <var>f</var>；<var>S</var><sub>c</sub> = ${Sc} mm 是一開始被截留＋窪蓄接住的雨</span>`
-        : `累積入滲量 <var>F</var> = <var>P</var> − <var>S</var><sub>c</sub> = ${fmt(T.P)} − ${Sc} = <b>${fmt(T.F)} mm</b>
-           <span class="ph__note">雨沒有土壤吸得快，全部滲得進去；<var>S</var><sub>c</sub> = ${Sc} mm 是一開始被截留＋窪蓄接住的雨</span>`;
+        ? `${tr(`累積入滲量`, `Cumulative infiltration`)} <var>F</var> = <var>f</var> × (<var>t</var><sub>r</sub> − <var>S</var><sub>c</sub> ÷ <var>i</var>) = ${P.f} × (${P.tr} − ${Sc} ÷ ${P.i}) = <b>${fmt(T.F)} mm</b>
+           <span class="ph__note">${tr(`雨比土壤吸得快，每小時只滲得進 <var>f</var>；<var>S</var><sub>c</sub> = ${Sc} mm 是一開始被截留＋窪蓄接住的雨`, `Rain outpaces the soil, so only <var>f</var> soaks in per hour; the first <var>S</var><sub>c</sub> = ${Sc} mm is caught by interception and depressions`)}</span>`
+        : `${tr(`累積入滲量`, `Cumulative infiltration`)} <var>F</var> = <var>P</var> − <var>S</var><sub>c</sub> = ${fmt(T.P)} − ${Sc} = <b>${fmt(T.F)} mm</b>
+           <span class="ph__note">${tr(`雨沒有土壤吸得快，全部滲得進去；<var>S</var><sub>c</sub> = ${Sc} mm 是一開始被截留＋窪蓄接住的雨`, `The soil keeps up with the rain, so all of it soaks in; the first <var>S</var><sub>c</sub> = ${Sc} mm is caught by interception and depressions`)}</span>`;
     q('[data-o="checks"]').innerHTML = `
-      <li class="${sim.overland ? 'yes' : 'no'}"><span><span class="math">i = ${P.i} ${sim.overland ? '>' : '≤'} f = ${P.f}</span>：${sim.overland ? '雨下得比土壤吸得快，<b>產生漫地流</b>' : '雨水全部來得及入滲，不產生漫地流'}</span></li>
-      <li class="${sim.sub ? 'yes' : 'no'}"><span><span class="math">F = ${fmt(T.F)} ${sim.sub ? '>' : '≤'} S<sub>e</sub> = ${P.Se}</span>：${sim.sub ? '土壤裝滿了，<b>產生中間流與新增地下水</b>' : '入滲的水都被土壤留住'}</span></li>`;
+      <li class="${sim.overland ? 'yes' : 'no'}"><span><span class="math">i = ${P.i} ${sim.overland ? '>' : '≤'} f = ${P.f}</span>${tr('：', ': ')}${sim.overland ? tr('雨下得比土壤吸得快，<b>產生漫地流</b>', 'rain outpaces the soil → <b>overland flow</b>') : tr('雨水全部來得及入滲，不產生漫地流', 'all rain soaks in, no overland flow')}</span></li>
+      <li class="${sim.sub ? 'yes' : 'no'}"><span><span class="math">F = ${fmt(T.F)} ${sim.sub ? '>' : '≤'} S<sub>e</sub> = ${P.Se}</span>${tr('：', ': ')}${sim.sub ? tr('土壤裝滿了，<b>產生中間流與新增地下水</b>', 'soil is full → <b>interflow + groundwater</b>') : tr('入滲的水都被土壤留住', 'the soil holds it all')}</span></li>`;
     phys.querySelectorAll('.horton figure').forEach((f) => f.classList.toggle('is-on', f.dataset.case === sim.caseId));
-    q('[data-o="eq12"]').innerHTML = `<span class="eq__tag">式 (1-2) 地表以上・降雨期間（<var>E</var>、<var>T</var> 很小，先當 0）</span>
+    q('[data-o="eq12"]').innerHTML = `<span class="eq__tag">${tr(`式 (1-2) 地表以上・降雨期間（<var>E</var>、<var>T</var> 很小，先當 0）`, `Eq. (1-2) above ground, during rain (<var>E</var>, <var>T</var> ≈ 0)`)}</span>
       <span class="eq__f"><var>P</var> − (<var>E</var> + <var>T</var> + <var>INF</var> + <var>Q</var>) = Δ<var>S</var><sub>s</sub></span>
       <span class="eq__n">${fmt(T.P)} − (0 + 0 + ${fmt(T.F)} + ${fmt(T.Q)}) = ${fmt(T.P - T.F - T.Q)} mm</span>
-      <span class="eq__tag">差額留在地表：截留＋窪蓄</span>`;
-    q('[data-o="eq13"]').innerHTML = `<span class="eq__tag">式 (1-3) 地表以下・雨開始後 36 小時</span>
+      <span class="eq__tag">${tr(`差額留在地表：截留＋窪蓄`, `Left on the surface: interception + depression storage`)}</span>`;
+    q('[data-o="eq13"]').innerHTML = `<span class="eq__tag">${tr(`式 (1-3) 地表以下・雨開始後 36 小時`, `Eq. (1-3) below ground, 36 h after the rain starts`)}</span>
       <span class="eq__f"><var>INF</var> − (<var>INT</var> + <var>G</var>) = Δ<var>S</var><sub>g</sub></span>
       <span class="eq__n">${fmt(T.INF)} − (${fmt(T.INT)} + ${fmt(T.G)}) = ${fmt(T.dSg)} mm</span>`;
-    q('[data-o="eq14"]').innerHTML = `<span class="eq__tag">出口量到的河川流量（式 1-4 的輸出項）</span>
+    q('[data-o="eq14"]').innerHTML = `<span class="eq__tag">${tr(`出口量到的河川流量（式 1-4 的輸出項）`, `Streamflow at the outlet (output of Eq. 1-4)`)}</span>
       <span class="eq__f"><var>Q</var> + <var>INT</var> + <var>G</var> = ${fmt(T.Q)} + ${fmt(T.INT)} + ${fmt(T.G)} = <b>${fmt(T.Q + T.INT + T.G)} mm</b></span>`;
     if (chart) drawStatic();
     if (tasks) checkTasks();
@@ -156,7 +157,7 @@ export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 1.5, init
     g.textAlign = 'right'; g.fillText(`${T} hr`, w - r, y1 + 20);
     g.textAlign = 'left'; g.fillText('mm/hr', l + 6, y0 + 12);
     const pk = chart.parentElement.querySelector('[data-o="peak"]');
-    if (pk) pk.innerHTML = `洪峰 <b>${fmt(sim.peak, 2)} mm/hr</b>，在雨開始後 <b>${fmt(sim.tPeak)} hr</b>`;
+    if (pk) pk.innerHTML = tr(`洪峰 <b>${fmt(sim.peak, 2)} mm/hr</b>，在雨開始後 <b>${fmt(sim.tPeak)} hr</b>`, `Peak <b>${fmt(sim.peak, 2)} mm/hr</b>, <b>${fmt(sim.tPeak)} hr</b> after the rain starts`);
   }
   function niceCeil(v) { const p = 10 ** Math.floor(Math.log10(v)); const m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }
   function drawFrame(tau) {

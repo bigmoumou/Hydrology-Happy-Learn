@@ -2,6 +2,7 @@ import { Deck } from '../../assets/deck.js';
 import { createReservoir } from '../../scenes/reservoir/scene.js';
 import { mountRouting } from '../../scenes/reservoir/routing-panel.js';
 import { setupCapture, markReady, setupQuiz, insets, progressTo, isCapture } from '../../assets/unit-common.js';
+import { tr } from '../../assets/i18n.js';
 
 const root = document.querySelector('.deck');
 const bg = document.getElementById('bg3d');
@@ -32,7 +33,7 @@ const SY = (s) => 30 + (62 - s) * 5.5;
   h += `<text x="0" y="276">0</text><text x="0" y="164">30</text>`;
   h += `<path class="s-line" d=""/><circle class="s-dot" r="6" cx="${MONTH_X(0) - 21}" cy="${SY(60)}"/>`;
   h += `<text class="s-lab" x="${MONTH_X(0) - 21}" y="${SY(60) - 12}" text-anchor="middle">60</text>`;
-  h += `<text x="555" y="16" text-anchor="end"><tspan fill="#2b86e0">■ 流入</tspan>　<tspan fill="#c26a1d">■ 流出</tspan>　<tspan fill="#2c9a5b">● 月底存水</tspan></text>`;
+  h += `<text x="555" y="16" text-anchor="end">${tr('<tspan fill="#2b86e0">■ 流入</tspan>　<tspan fill="#c26a1d">■ 流出</tspan>　<tspan fill="#2c9a5b">● 月底存水</tspan>', '<tspan fill="#2b86e0">■ In</tspan>　<tspan fill="#c26a1d">■ Out</tspan>　<tspan fill="#2c9a5b">● Storage at month end</tspan>')}</text>`;
   ledgerSvg.innerHTML = h;
 })();
 const ledger = { m: 0, target: 0 };
@@ -49,7 +50,8 @@ function renderLedger(mf) {
   dot.setAttribute('cx', cx); dot.setAttribute('cy', cy);
   lab.setAttribute('x', cx); lab.setAttribute('y', cy - 12); lab.textContent = Math.round(sNow);
   document.getElementById('ledgerS').textContent = Math.round(sNow);
-  document.getElementById('ledgerMonth').textContent = mf < 0.02 ? '年初' : `${Math.min(12, Math.ceil(mf - 0.02))} 月底`;
+  const mEnd = Math.min(12, Math.ceil(mf - 0.02));
+  document.getElementById('ledgerMonth').textContent = mf < 0.02 ? tr('年初', 'Start of year') : tr(`${mEnd} 月底`, `End of month ${mEnd}`);
   return sNow;
 }
 renderLedger(0);
