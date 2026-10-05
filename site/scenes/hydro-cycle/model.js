@@ -59,22 +59,28 @@ export function simulate({ i, tr, f, Se }, o = {}) {
 
 // 某一時刻各過程的強度（0–1），給 3D 場景用。
 // 用固定的尺度換算（不是每場雨各自正規化），所以雨下得越大、3D 裡的水就越多。
-export function intensities(sim, tau) {
+// show：面板的判斷（ov 有漫地流、sub 有中間流與新增地下水）。3D 一律跟面板的說法一致——
+// 面板說有，流動時至少畫到看得見（0.08）；面板說沒有，就完全不畫。
+export function intensities(sim, tau, show = { ov: sim.overland, sub: sim.sub }) {
   const k = Math.max(0, Math.min(sim.t.length - 1, Math.round(tau / sim.dt)));
   const { i, f, tr } = sim.params;
   const c = (v) => Math.min(1, Math.max(0, v));
   const raining = sim.rain[k] > 0;
-  const sinceRain = sim.t[k] - tr;
-  const q = sim.qs[k] + sim.qi[k] + sim.qg[k];
+  // 雨停多久了；完全沒下雨（i = 0）就當成一直是乾燥的天氣（蒸發、蒸散、出滲從一開始就有）
+  const sinceRain = i > 0 ? sim.t[k] - tr : 99;
+  const seen = (on, v, scaled) => (on && v > 0.002 ? Math.max(0.08, scaled) : 0);
+  // 滲漏：土壤裝滿那段時間補注到地下水的水，往下穿過未飽和層要一點時間——粒子延續約 1 小時再淡出
+  let rk = 0;
+  for (let j = k; j >= 0 && j > k - 60; j--) rk = Math.max(rk, sim.rech[j] * Math.exp(-(k - j) * sim.dt / 1.2));
   // 窪地的水：雨一開始被截留＋窪蓄接住而漲起來，雨停後慢慢蒸發退回去（迴圈頭尾接得起來）
   const dry = 0.3, dryOut = 1 - (sinceRain > 0 ? Math.min(1, Math.max(0, (sinceRain - 3) / (sim.T - tr - 5))) : 0);
   return {
     rain: raining ? 0.12 + 0.88 * Math.min(1, i / 70) : 0,
     // 入滲：只在真的有水滲進土壤時（雨一開始先填截留＋窪蓄，那段時間還沒入滲）
     infil: sim.infl[k] > 0 ? c(0.25 + Math.min(sim.infl[k], f) / 40) : 0,
-    overland: c(Math.pow(sim.qs[k] / 20, 0.7)),
-    interflow: c(Math.pow(sim.qi[k] / 3, 0.7)),
-    perc: c(Math.pow(sim.rech[k] / 15, 0.7)),
+    overland: seen(show.ov, sim.qs[k], c(Math.pow(sim.qs[k] / 20, 0.7))),
+    interflow: seen(show.sub, sim.qi[k], c(Math.pow(sim.qi[k] / 3, 0.7))),
+    perc: seen(show.sub, rk, c(Math.pow(rk / 15, 0.7))),
     gw: 0.35 + 0.65 * c((sim.qg[k] - sim.qg[0]) / 0.3),
     drip: raining ? 1 : 0,
     exfil: sinceRain > 6 ? c((sinceRain - 6) / 6) : 0,
@@ -82,8 +88,8 @@ export function intensities(sim, tau) {
     transp: raining ? 0.1 : c(0.3 + sinceRain / 8),
     soilWet: c(sim.sw[k]),
     gwRise: c((sim.sg[k] - sim.tot.Sg0) / 20),
-    // 河水混濁：泥沙主要由地表逕流帶進河裡；中間流、地下水流出來的水是清的，只算一點點
-    flood: c(Math.pow(Math.max(0, sim.qs[k] + 0.25 * (sim.qi[k] + sim.qg[k] - sim.qg[0])) / 25, 0.8)),
+    // 河水混濁：泥沙由地表逕流帶進河裡；中間流、地下水流出來的水是清的
+    flood: show.ov ? c(Math.pow(sim.qs[k] / 25, 0.8)) : 0,
     pond: dry + (1 - dry) * c(sim.ss[k]) * dryOut,
   };
 }

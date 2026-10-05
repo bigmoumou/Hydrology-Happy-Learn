@@ -3,11 +3,15 @@ import { simulate, intensities, DEFAULTS } from './model.js';
 import { tr } from '../../assets/i18n.js';
 
 const fmt = (v, d = 1) => (Math.abs(v) < 0.05 && d === 1 ? '0' : v.toFixed(d));
+// 面板上的水深一律四捨五入到 0.1 mm（加一點點，避免 20.25 被浮點數捨成 20.2；負數往外進位）。
+// 式子的答案用「畫面上的數字」算，判斷句、Horton 圖、任務也都依畫面上的數字決定——學生自己驗算一定對得上。
+const R1 = (v) => { const r = Math.round(v * 10 + (v >= 0 ? 1e-7 : -1e-7)) / 10; return r === 0 ? 0 : r; };
+const f1 = (v) => (v === 0 ? '0' : v.toFixed(1).replace('-', '−'));
 const C = { qs: '#2b86e0', qi: '#19b39b', qg: '#1747c9', rain: '#8796a3', f: '#a5631a' };
 const HORTON = [
-  ['a', 'i<f, F<Se', 'M2 8 L40 22'],
-  ['b', 'i<f, F>Se', 'M2 8 L14 13 C20 9 26 10 40 20'],
-  ['c', 'i>f, F<Se', 'M2 8 L10 12 C15 12 16 1 20 1 C24 1 25 16 30 18 L40 22'],
+  ['a', 'i≤f, F≤Se', 'M2 8 L40 22'],
+  ['b', 'i≤f, F>Se', 'M2 8 L14 13 C20 9 26 10 40 20'],
+  ['c', 'i>f, F≤Se', 'M2 8 L10 12 C15 12 16 1 20 1 C24 1 25 16 30 18 L40 22'],
   ['d', 'i>f, F>Se', 'M2 8 L10 12 C15 12 16 1 20 1 C24 1 25 12 30 13 L40 16'],
 ];
 const esc = (t) => t.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -59,38 +63,52 @@ export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 1.5, init
   }
   q('input[data-k="sim"]').addEventListener('change', (e) => { if (!e.target.checked) getApi()?.clearGains(); });
 
+  let shown = { ov: false, sub: false, Q: 0, INT: 0 };
   function recompute() {
     sim = simulate(P);
-    const T = sim.tot;
-    q('[data-o="P"]').innerHTML = `${tr(`降雨量`, `Rainfall depth`)} <var>P</var> = <var>i</var> × <var>t</var><sub>r</sub> = ${P.i} × ${P.tr} = <b>${fmt(T.P)} mm</b>`;
+    const T = sim.tot, Sc = sim.params.Sc;
+    // 畫面上的數字（0.1 mm）：Q、ΔSg、出口總量由畫面上的其他數字算出來
+    const Pd = R1(T.P), Sd = R1(Math.min(T.P, Sc)), Fd = R1(T.F);
+    const Qd = R1(Pd - Sd - Fd), INTd = R1(T.INT), Gd = R1(T.G);
+    const dSgd = R1(Fd - INTd - Gd), outd = R1(Qd + INTd + Gd);
+    const ov = P.i > P.f && Qd > 0;            // 畫面上看得到漫地流
+    const sub = Fd > P.Se && INTd > 0;         // 土壤滿了，而且多出來的水看得到
+    shown = { ov, sub, Q: Qd, INT: INTd };
+    q('[data-o="P"]').innerHTML = `${tr(`降雨量`, `Rainfall depth`)} <var>P</var> = <var>i</var> × <var>t</var><sub>r</sub> = ${P.i} × ${P.tr} = <b>${f1(Pd)} mm</b>`;
     // 累積入滲量 F：降雨期間滲進土壤的總水深。一開始的 Sc 先被截留＋窪蓄接住；之後每小時最多滲 min(i, f)
-    const Sc = sim.params.Sc;
     q('[data-o="F"]').innerHTML = T.P === 0
       ? tr(`累積入滲量 <var>F</var> = 0（沒有下雨）`, `Cumulative infiltration <var>F</var> = 0 (no rain)`)
       : T.P <= Sc
       ? tr(`累積入滲量 <var>F</var> = 0（雨量不到 <var>S</var><sub>c</sub> = ${Sc} mm，全被截留＋窪蓄接住）`, `Cumulative infiltration <var>F</var> = 0 (rain is less than <var>S</var><sub>c</sub> = ${Sc} mm; interception and depression storage hold it all)`)
       : P.i > P.f
-        ? `${tr(`累積入滲量`, `Cumulative infiltration`)} <var>F</var> = <var>f</var> × (<var>t</var><sub>r</sub> − <var>S</var><sub>c</sub> ÷ <var>i</var>) = ${P.f} × (${P.tr} − ${Sc} ÷ ${P.i}) = <b>${fmt(T.F)} mm</b>
+        ? `${tr(`累積入滲量`, `Cumulative infiltration`)} <var>F</var> = <var>f</var> × (<var>t</var><sub>r</sub> − <var>S</var><sub>c</sub> ÷ <var>i</var>) = ${P.f} × (${P.tr} − ${Sc} ÷ ${P.i}) = <b>${f1(Fd)} mm</b>
            <span class="ph__note">${tr(`雨比土壤吸得快，每小時只滲得進 <var>f</var>；<var>S</var><sub>c</sub> = ${Sc} mm 是一開始被截留＋窪蓄接住的雨`, `Rain outpaces the soil, so only <var>f</var> soaks in per hour; the first <var>S</var><sub>c</sub> = ${Sc} mm is caught by interception and depressions`)}</span>`
-        : `${tr(`累積入滲量`, `Cumulative infiltration`)} <var>F</var> = <var>P</var> − <var>S</var><sub>c</sub> = ${fmt(T.P)} − ${Sc} = <b>${fmt(T.F)} mm</b>
+        : `${tr(`累積入滲量`, `Cumulative infiltration`)} <var>F</var> = <var>P</var> − <var>S</var><sub>c</sub> = ${f1(Pd)} − ${Sc} = <b>${f1(Fd)} mm</b>
            <span class="ph__note">${tr(`雨沒有土壤吸得快，全部滲得進去；<var>S</var><sub>c</sub> = ${Sc} mm 是一開始被截留＋窪蓄接住的雨`, `The soil keeps up with the rain, so all of it soaks in; the first <var>S</var><sub>c</sub> = ${Sc} mm is caught by interception and depressions`)}</span>`;
     const ovMsg = P.i === 0 ? tr('沒有下雨', 'no rain')
       : T.P <= Sc ? tr('雨量還不夠填滿截留＋窪蓄，沒有漫地流', 'rain only fills interception + depressions, no overland flow')
-      : sim.overland ? tr('雨下得比土壤吸得快，<b>產生漫地流</b>', 'rain outpaces the soil → <b>overland flow</b>')
-      : tr('雨水全部來得及入滲，不產生漫地流', 'all rain soaks in, no overland flow');
+      : P.i <= P.f ? tr('雨水全部來得及入滲，不產生漫地流', 'all rain soaks in, no overland flow')
+      : ov ? tr('雨下得比土壤吸得快，<b>產生漫地流</b>', 'rain outpaces the soil → <b>overland flow</b>')
+      : tr('超過入滲容量的雨不到 0.1 mm，幾乎沒有漫地流', 'excess rain is under 0.1 mm, practically no overland flow');
+    const subMsg = Fd === 0 ? tr('沒有入滲', 'no infiltration')
+      : Fd <= P.Se ? tr('入滲的水都被土壤留住', 'the soil holds it all')
+      : sub ? tr('土壤裝滿了，<b>產生中間流與新增地下水</b>', 'soil is full → <b>interflow + groundwater</b>')
+      : tr('土壤剛好裝滿，多出的水極少，中間流不到 0.1 mm', 'soil just full; interflow under 0.1 mm');
     q('[data-o="checks"]').innerHTML = `
-      <li class="${sim.overland ? 'yes' : 'no'}"><span><span class="math">i = ${P.i} ${P.i > P.f ? '>' : '≤'} f = ${P.f}</span>${tr('：', ': ')}${ovMsg}</span></li>
-      <li class="${sim.sub ? 'yes' : 'no'}"><span><span class="math">F = ${fmt(T.F)} ${sim.sub ? '>' : '≤'} S<sub>e</sub> = ${P.Se}</span>${tr('：', ': ')}${sim.sub ? tr('土壤裝滿了，<b>產生中間流與新增地下水</b>', 'soil is full → <b>interflow + groundwater</b>') : T.F > 0 ? tr('入滲的水都被土壤留住', 'the soil holds it all') : tr('沒有入滲', 'no infiltration')}</span></li>`;
-    phys.querySelectorAll('.horton figure').forEach((f) => f.classList.toggle('is-on', f.dataset.case === sim.caseId));
+      <li class="${ov ? 'yes' : 'no'}"><span><span class="math">i = ${P.i} ${P.i > P.f ? '>' : '≤'} f = ${P.f}</span>${tr('：', ': ')}${ovMsg}</span></li>
+      <li class="${sub ? 'yes' : 'no'}"><span><span class="math">F = ${f1(Fd)} ${Fd > P.Se ? '>' : '≤'} S<sub>e</sub> = ${P.Se}</span>${tr('：', ': ')}${subMsg}</span></li>`;
+    // Horton 四種情況依圖上標的條件分類（i 和 f 比、畫面上的 F 和 Se 比），和上面兩行的比較符號一致
+    const caseId = P.i > P.f ? (Fd > P.Se ? 'd' : 'c') : (Fd > P.Se ? 'b' : 'a');
+    phys.querySelectorAll('.horton figure').forEach((f) => f.classList.toggle('is-on', f.dataset.case === caseId));
     q('[data-o="eq12"]').innerHTML = `<span class="eq__tag">${tr(`式 (1-2) 地表以上・降雨期間（<var>E</var>、<var>T</var> 很小，先當 0）`, `Eq. (1-2) above ground, during rain (<var>E</var>, <var>T</var> ≈ 0)`)}</span>
       <span class="eq__f"><var>P</var> − (<var>E</var> + <var>T</var> + <var>INF</var> + <var>Q</var>) = Δ<var>S</var><sub>s</sub></span>
-      <span class="eq__n">${fmt(T.P)} − (0 + 0 + ${fmt(T.F)} + ${fmt(T.Q)}) = ${fmt(T.P - T.F - T.Q)} mm</span>
+      <span class="eq__n">${f1(Pd)} − (0 + 0 + ${f1(Fd)} + ${f1(Qd)}) = ${f1(Sd)} mm</span>
       <span class="eq__tag">${tr(`差額留在地表：截留＋窪蓄`, `Left on the surface: interception + depression storage`)}</span>`;
     q('[data-o="eq13"]').innerHTML = `<span class="eq__tag">${tr(`式 (1-3) 地表以下・雨開始後 36 小時`, `Eq. (1-3) below ground, 36 h after the rain starts`)}</span>
       <span class="eq__f"><var>INF</var> − (<var>INT</var> + <var>G</var>) = Δ<var>S</var><sub>g</sub></span>
-      <span class="eq__n">${fmt(T.INF)} − (${fmt(T.INT)} + ${fmt(T.G)}) = ${fmt(T.dSg)} mm</span>`;
+      <span class="eq__n">${f1(Fd)} − (${f1(INTd)} + ${f1(Gd)}) = ${f1(dSgd)} mm</span>`;
     q('[data-o="eq14"]').innerHTML = `<span class="eq__tag">${tr(`出口量到的河川流量（式 1-4 的輸出項）`, `Streamflow at the outlet (output of Eq. 1-4)`)}</span>
-      <span class="eq__f"><var>Q</var> + <var>INT</var> + <var>G</var> = ${fmt(T.Q)} + ${fmt(T.INT)} + ${fmt(T.G)} = <b>${fmt(T.Q + T.INT + T.G)} mm</b></span>`;
+      <span class="eq__f"><var>Q</var> + <var>INT</var> + <var>G</var> = ${f1(Qd)} + ${f1(INTd)} + ${f1(Gd)} = <b>${f1(outd)} mm</b></span>`;
     if (chart) drawStatic();
     if (tasks) checkTasks();
   }
@@ -100,8 +118,8 @@ export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 1.5, init
   function checkTasks() {
     const rules = {
       noOverland: () => P.i > 0 && P.i <= P.f && sim.tot.P > sim.params.Sc,   // 雨全部入滲（不是被地表暫存接住）
-      interflow: () => sim.sub,
-      peak: () => sim.peak > 30,
+      interflow: () => shown.sub,
+      peak: () => +sim.peak.toFixed(2) > 30,
     };
     tasks.querySelectorAll('li[data-task]').forEach((li) => {
       if (rules[li.dataset.task]?.()) done.add(li.dataset.task);
@@ -164,7 +182,7 @@ export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 1.5, init
     g.textAlign = 'left'; g.fillText('mm/hr', l + 6, y0 + 12);
     const pk = chart.parentElement.querySelector('[data-o="peak"]');
     // 雨全部存進土壤（沒有地表逕流、也沒有中間流）時，河裡只有原本的基流，沒有洪峰
-    if (pk) pk.innerHTML = sim.tot.Q < 0.01 && !sim.sub
+    if (pk) pk.innerHTML = shown.Q === 0 && shown.INT === 0
       ? tr(`沒有洪峰：河裡只有基流 <b>${fmt(sim.qg[0], 2)} mm/hr</b>`, `No flood peak: only baseflow <b>${fmt(sim.qg[0], 2)} mm/hr</b>`)
       : tr(`洪峰 <b>${fmt(sim.peak, 2)} mm/hr</b>，在雨開始後 <b>${fmt(sim.tPeak)} hr</b>`, `Peak <b>${fmt(sim.peak, 2)} mm/hr</b>, <b>${fmt(sim.tPeak)} hr</b> after the rain starts`);
   }
@@ -192,8 +210,12 @@ export function mountPanel({ phys, chart, tasks, getApi, hoursPerSec = 1.5, init
     const tau = (api.time * hoursPerSec) % sim.T;
     const now = performance.now(), dtR = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 1; lastNow = now;
     if (q('input[data-k="sim"]').checked) {
-      const target = intensities(sim, tau);
+      const target = intensities(sim, tau, shown);
       for (const [k, v] of Object.entries(target)) cur[k] = cur[k] === undefined ? v : cur[k] + (v - cur[k]) * Math.min(1, dtR * 3.5);
+      // 面板判定「沒有」的過程立刻歸零（拉滑桿越過門檻時不留殘影）；隨時間的起落仍然平滑
+      if (!shown.ov) cur.overland = cur.flood = 0;
+      if (!shown.sub) cur.interflow = cur.perc = 0;
+      if (P.i === 0) cur.rain = cur.drip = cur.infil = 0;
       api.setGains(cur);
     }
     if (chart) drawFrame(tau);
