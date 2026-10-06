@@ -152,8 +152,8 @@ export function buildDamDetails(scene, ctx) {
     const parts = [paint(hull, 0xeeeeea), block(0.16, 0.08, 0.14, 0xd9d6cf, -0.06, 0.09, 0, 0.02), block(0.02, 0.05, 0.12, GLASS, 0.03, 0.1, 0)];
     const m = new THREE.Mesh(mergeGeometries(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4 }));
     boat.add(m);
-    // 船尾的水痕
-    const wake = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.36).rotateX(-Math.PI / 2).translate(-1.05, 0, 0), new THREE.ShaderMaterial({
+    // 船尾的水痕（略高於水面，波峰才不會把它蓋掉）
+    const wake = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.36).rotateX(-Math.PI / 2).translate(-1.05, 0.05, 0), new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, uniforms: { uTime: U.uTime },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
       fragmentShader: `uniform float uTime; varying vec2 vUv;
@@ -166,6 +166,7 @@ export function buildDamDetails(scene, ctx) {
     }));
     wake.renderOrder = 5;
     boat.add(wake);
+    boat.scale.setScalar(2);   // 船身（連水痕）放大 2 倍，鏡頭拉遠時也看得到
     scene.add(boat);
   }
   // 船沿著湖中線附近慢慢繞橢圓；水太淺（低水位）就不出現
@@ -175,7 +176,7 @@ export function buildDamDetails(scene, ctx) {
     const bx = -9 + 3.2 * s, bz = -3.4 + 0.9 * c;
     boat.position.set(bx, level + 0.02 + (ctx.surfEta ? ctx.surfEta(bx, bz, t) : 0), bz);   // 跟著波浪、晃動起伏
     boat.rotation.y = Math.atan2(0.9 * s, 3.2 * c);
-    boat.visible = level - H(boat.position.x, boat.position.z) > 0.3;
+    boat.visible = level - H(boat.position.x, boat.position.z) > 0.5;   // 船變大了，吃水也要深一點才出現
   };
   place(0);
   return {
