@@ -497,6 +497,8 @@ export async function createReservoir(container, opts = {}) {
     dam: stage.label(...labelText('大壩', 'dam'), [damX + 0.7, crest + 0.9, -5.6]),
     spill: stage.label(...labelText('溢洪道', 'spillway'), [damX + 4.6, spill - 2.6, (spZ0 + spZ1) / 2]),
   };
+  // 入流、出流的標籤直接貼在箭頭上（短引線）：一眼看得出是在說哪一支箭頭
+  labels.inflow.el.classList.add('hc-label--tight'); labels.outflow.el.classList.add('hc-label--tight');
   const showArrows = { value: true };
 
   // ---------- 狀態 ----------
@@ -507,16 +509,23 @@ export async function createReservoir(container, opts = {}) {
     const out = Math.min(1.2, flows.O + flows.spill);
     U.uDO.value = 0.2 + 0.6 * out; U.uVO.value = 1.0 + 3.5 * out;
     U.uRelease.value = flows.O; U.uSpill.value = flows.spill;
-    arrI.setLength(2 + 9 * flows.I); arrO.setLength(2 + 9 * out);
+    const lenI = 2 + 9 * flows.I, lenO = 2 + 9 * out;
+    arrI.setLength(lenI); arrO.setLength(lenO);
     arrI.visible = arrO.visible = showArrows.value;
     const L = U.uLevel.value;
     arrS.visible = showArrows.value && Math.abs(dSdt) > 0.02;
     arrS.rotation.z = dSdt >= 0 ? 0 : Math.PI;
     arrS.setLength(1.2 + 5 * Math.min(1, Math.abs(dSdt)));
-    arrS.position.set(-14, L + (dSdt >= 0 ? 0.6 : 8.6), -8);
+    // 蓄水量的升降箭頭放在湖中央，和「蓄水量 S」標籤（湖的左側）拉開，寬螢幕下也不會被標籤蓋住
+    arrS.position.set(-6, L + (dSdt >= 0 ? 0.6 : 8.6), -8);
+    // 入流、出流的標籤貼在箭頭正上方、箭身中間（箭頭朝 +x，從 position 往右長 len＋箭頭 1.6）
     const xI = -54, lvI = Math.max(L, thalAt(xI) + U.uDI.value);
-    arrI.position.set(xI - 2, lvI + 2.6, -1.2); labels.inflow.obj.position.set(xI + 2, lvI + 5.4, -1.2);
-    labels.storage.obj.position.y = L + 1.0;
+    arrI.position.set(xI - 2, lvI + 2.6, -1.2);
+    labels.inflow.obj.position.set(xI - 2 + (lenI + 1.6) / 2, lvI + 2.6 + 1.2, -1.2);
+    const xO = damX + 19, yO = thalAt(damX + 22) + 3.2;
+    arrO.position.set(xO, yO, -1.2);
+    labels.outflow.obj.position.set(xO + (lenO + 1.6) / 2, yO + 1.2, -1.2);
+    labels.storage.obj.position.set(-22, L + 1.0, -10);
     details.setLevel(L);
   }
   apply();
